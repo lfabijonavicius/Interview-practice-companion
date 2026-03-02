@@ -32,10 +32,13 @@ PROMPTS = {
             "You are a behavioral interview coach helping candidates prepare for "
             "{role} positions. Help candidates craft strong answers using the STAR method "
             "(Situation, Task, Action, Result).\n\n"
+            
             "Here are examples of good behavioral interview answers:\n\n"
             "---\n"
+            
             "Q: Tell me about a time you had a conflict with a teammate.\n"
             "A:\n"
+            
             "**Situation:** During a project, a colleague and I disagreed on whether to "
             "refactor a legacy system or build a new one.\n"
             "**Task:** I needed to find a resolution that wouldn't delay our deadline.\n"

@@ -9,6 +9,25 @@ load_dotenv()
 
 MAX_INPUT_LENGTH = 2000
 
+MODEL_OPTIONS = ["gpt-4o-mini", "gpt-4o", "gpt-4.1-nano", "gpt-4.1-mini", "gpt-4.1"]
+
+MODEL_LABELS = {
+    "gpt-4o-mini":  "GPT-4o mini",
+    "gpt-4o":       "GPT-4o",
+    "gpt-4.1-nano": "GPT-4.1 nano",
+    "gpt-4.1-mini": "GPT-4.1 mini",
+    "gpt-4.1":      "GPT-4.1",
+}
+
+# Cost per 1M tokens (USD) — https://openai.com/api/pricing/
+MODEL_COSTS = {
+    "gpt-4o-mini":  {"input": 0.15,  "output": 0.60},
+    "gpt-4o":       {"input": 2.50,  "output": 10.00},
+    "gpt-4.1-nano": {"input": 0.10,  "output": 0.40},
+    "gpt-4.1-mini": {"input": 0.40,  "output": 1.60},
+    "gpt-4.1":      {"input": 2.00,  "output": 8.00},
+}
+
 MODE_ICONS = {
     "General Q&A (Zero-Shot)": "💡",
     "Behavioral Interview (Few-Shot)": "🗣️",
@@ -79,6 +98,13 @@ mode = st.sidebar.selectbox(
     help="Each mode uses a different prompting technique.",
 )
 
+model = st.sidebar.selectbox(
+    "🤖 Model",
+    options=MODEL_OPTIONS,
+    format_func=lambda m: MODEL_LABELS[m],
+    help="Choose which OpenAI model to use. More capable models cost more per token.",
+)
+
 job_role = st.sidebar.text_input(
     "🎯 Job Role",
     value="Software Engineer",
@@ -98,8 +124,34 @@ temperature = st.sidebar.slider(
     value=0.7,
     step=0.1,
     help=(
-        "Controls randomness. Lower values (0.0-0.3) give focused, deterministic "
-        "answers. Higher values (0.8-1.5) give more creative, varied responses."
+        "Controls randomness. Lower values (0.0–0.3) give focused, deterministic "
+        "answers. Higher values (0.8–1.5) give more creative, varied responses. "
+        "OpenAI recommends tuning Temperature OR Top-p, not both simultaneously."
+    ),
+)
+
+top_p = st.sidebar.slider(
+    "🎯 Top-p",
+    min_value=0.1,
+    max_value=1.0,
+    value=1.0,
+    step=0.05,
+    help=(
+        "Nucleus sampling: only tokens comprising the top-p probability mass are "
+        "considered. Lower values (e.g. 0.5) make output more focused. "
+        "Leave at 1.0 if you are already adjusting Temperature."
+    ),
+)
+
+max_tokens = st.sidebar.slider(
+    "📏 Max Tokens",
+    min_value=100,
+    max_value=2000,
+    value=800,
+    step=100,
+    help=(
+        "Maximum number of tokens in the response. 1 token ≈ 0.75 words. "
+        "Lower values produce shorter answers; higher values allow more detail."
     ),
 )
 
@@ -107,6 +159,8 @@ st.sidebar.markdown("---")
 
 if st.sidebar.button("🗑️ Clear Chat", use_container_width=True):
     st.session_state.messages = []
+    st.session_state.total_input_tokens = 0
+    st.session_state.total_output_tokens = 0
     st.rerun()
 
 # --- API Key Validation ---
@@ -124,21 +178,36 @@ client = OpenAI(api_key=api_key)
 col1, col2, col3 = st.columns([2, 5, 2])
 with col2:
     st.markdown(f"# {MODE_ICONS.get(mode, '💼')} Interview Practice")
-    st.caption(f"Preparing for: **{job_role}** | Mode: **{mode}**")
+    st.caption(
+        f"Preparing for: **{job_role}** | Mode: **{mode}** | Model: **{MODEL_LABELS[model]}**"
+    )
 
-# --- Chat History ---
+# --- Chat History & Session State ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "current_mode" not in st.session_state:
     st.session_state.current_mode = mode
 if "current_role" not in st.session_state:
     st.session_state.current_role = job_role
+if "current_model" not in st.session_state:
+    st.session_state.current_model = model
+if "total_input_tokens" not in st.session_state:
+    st.session_state.total_input_tokens = 0
+if "total_output_tokens" not in st.session_state:
+    st.session_state.total_output_tokens = 0
 
-# Reset chat when mode or role changes
-if st.session_state.current_mode != mode or st.session_state.current_role != job_role:
+# Reset chat when mode, role, or model changes
+if (
+    st.session_state.current_mode != mode
+    or st.session_state.current_role != job_role
+    or st.session_state.current_model != model
+):
     st.session_state.messages = []
+    st.session_state.total_input_tokens = 0
+    st.session_state.total_output_tokens = 0
     st.session_state.current_mode = mode
     st.session_state.current_role = job_role
+    st.session_state.current_model = model
 
 # Show welcome message when chat is empty
 if not st.session_state.messages:
@@ -192,10 +261,25 @@ for msg in st.session_state.messages:
 # Stats in sidebar
 if st.session_state.messages:
     user_msgs = sum(1 for m in st.session_state.messages if m["role"] == "user")
+    costs = MODEL_COSTS[model]
+    total_cost = (
+        st.session_state.total_input_tokens / 1_000_000 * costs["input"]
+        + st.session_state.total_output_tokens / 1_000_000 * costs["output"]
+    )
     st.sidebar.markdown("---")
     st.sidebar.markdown("#### 📊 Session Stats")
     st.sidebar.metric("Questions Asked", user_msgs)
     st.sidebar.metric("Total Messages", len(st.session_state.messages))
+    st.sidebar.metric(
+        "Tokens Used",
+        f"{st.session_state.total_input_tokens + st.session_state.total_output_tokens:,}",
+        help=f"Input: {st.session_state.total_input_tokens:,} | Output: {st.session_state.total_output_tokens:,}",
+    )
+    st.sidebar.metric(
+        "Est. Cost",
+        f"${total_cost:.4f}",
+        help="Estimated cost based on current OpenAI pricing. Prices may change.",
+    )
 
 # --- User Input ---
 placeholder = MODE_PLACEHOLDERS.get(mode, "Type your question or answer here...")
@@ -226,14 +310,20 @@ if user_input:
         with st.spinner("Thinking..."):
             try:
                 response = client.chat.completions.create(
-                    model="gpt-4o-mini",
+                    model=model,
                     messages=api_messages,
                     temperature=temperature,
+                    top_p=top_p,
+                    max_tokens=max_tokens,
                 )
                 assistant_message = response.choices[0].message.content
                 st.markdown(assistant_message)
                 st.session_state.messages.append(
                     {"role": "assistant", "content": assistant_message}
                 )
+                # Track token usage for cost display
+                if response.usage:
+                    st.session_state.total_input_tokens += response.usage.prompt_tokens
+                    st.session_state.total_output_tokens += response.usage.completion_tokens
             except Exception as e:
                 st.error(f"Error calling OpenAI API: {e}")
