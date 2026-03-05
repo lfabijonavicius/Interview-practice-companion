@@ -393,30 +393,19 @@ div.stButton > button[kind="primary"],
     border-color: #7c3aed !important;
     box-shadow: 0 0 0 1px #7c3aed, 0 8px 32px rgba(124, 58, 237, 0.25) !important;
 }
-/* All inner wrappers — fully transparent, no borders */
-[data-testid="stChatInput"] > div > div,
-[data-testid="stChatInput"] > div > div > div {
+/* Nuke ALL descendant backgrounds at any nesting depth */
+[data-testid="stChatInput"] * {
     background: transparent !important;
     background-color: transparent !important;
     border: none !important;
     box-shadow: none !important;
 }
-/* Textarea — transparent, no focus ring */
 [data-testid="stChatInput"] textarea {
-    background: transparent !important;
-    background-color: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
     caret-color: #a5b4fc !important;
     color: rgba(255, 255, 255, 0.9) !important;
 }
 [data-testid="stChatInput"] textarea::placeholder {
     color: rgba(255, 255, 255, 0.28) !important;
-}
-/* Send button — transparent so it doesn't create a box */
-[data-testid="stChatInput"] button {
-    background: transparent !important;
-    background-color: transparent !important;
 }
 
 /* ── Sidebar iframe (fluid dropdown) ─────────────────────────────────── */
