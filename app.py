@@ -47,6 +47,108 @@ def _transcribe_audio(openai_client, audio_bytes: bytes) -> str:
         st.error(f"⚠️ Transcription failed: {e}")
         return ""
 
+def _should_score(mode: str, text: str) -> bool:
+    """Return True if the user's answer is worth scoring."""
+    if "Question Generator" in mode:
+        return False
+    return len(text.split()) >= 15
+
+
+def _score_answer(
+    openai_client, question: str, answer: str, role: str, mode: str,
+    resume: str = "", jd: str = "",
+) -> dict | None:
+    """Score a candidate's answer via gpt-4.1-nano. Returns dict or None on failure."""
+    if "Behavioral" in mode:
+        dimensions = ["STAR Structure", "Specificity", "Impact", "Relevance"]
+    elif "Deep-Dive" in mode:
+        dimensions = ["Technical Accuracy", "Problem Decomp.", "Trade-offs", "Clarity"]
+    elif "Mock" in mode:
+        dimensions = ["Completeness", "Clarity", "Confidence", "Relevance"]
+    else:
+        dimensions = ["Accuracy", "Depth", "Clarity", "Practical Application"]
+
+    ctx = ""
+    if resume.strip():
+        ctx += f"\nCandidate background: {resume[:400]}"
+    if jd.strip():
+        ctx += f"\nTarget JD excerpt: {jd[:400]}"
+
+    d = dimensions
+    prompt = (
+        f"You are an expert interview coach scoring a {role} candidate's answer.\n\n"
+        f"Question/context: {question[:400]}\n"
+        f"Candidate's answer: {answer[:800]}\n"
+        f"{ctx}\n\n"
+        f"Score on: {', '.join(d)} — each 1-10 (integer).\n"
+        f"Return ONLY valid JSON:\n"
+        f'{{"dimensions":{{"{d[0]}":N,"{d[1]}":N,"{d[2]}":N,"{d[3]}":N}},'
+        f'"overall":N.N,"strength":"<10 words>","improve":"<10 words>"}}'
+    )
+    try:
+        resp = openai_client.chat.completions.create(
+            model="gpt-4.1-nano",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            max_tokens=220,
+        )
+        raw = resp.choices[0].message.content.strip()
+        if raw.startswith("```"):
+            lines = raw.split("\n")
+            raw = "\n".join(lines[1:])
+            if raw.endswith("```"):
+                raw = raw[: raw.rfind("```")]
+        return json.loads(raw)
+    except Exception:
+        return None
+
+
+def _render_score_card(score_dict: dict) -> None:
+    """Render a compact rubric score card for an answer evaluation."""
+    if not score_dict:
+        return
+    dims = score_dict.get("dimensions", {})
+    overall = score_dict.get("overall", 0)
+    strength = score_dict.get("strength", "")
+    improve = score_dict.get("improve", "")
+
+    def _bar_color(v: float) -> str:
+        return "#4ade80" if v >= 7 else "#fbbf24" if v >= 5 else "#f87171"
+
+    overall_color = _bar_color(overall)
+    bars_html = ""
+    for dim, val in dims.items():
+        pct = int(val * 10)
+        warn = " ⚠" if val < 6 else ""
+        bars_html += (
+            f'<div class="sc-dim-row">'
+            f'<span class="sc-dim-label">{dim}{warn}</span>'
+            f'<div class="sc-bar-track"><div class="sc-bar-fill" '
+            f'style="width:{pct}%;background:{_bar_color(val)}"></div></div>'
+            f'<span class="sc-val">{val}</span>'
+            f'</div>'
+        )
+
+    fb_html = ""
+    if strength or improve:
+        fb_html = (
+            '<div class="sc-feedback">'
+            + (f'<span class="sc-strength">✓ {strength}</span>' if strength else "")
+            + (f'<span class="sc-improve">△ {improve}</span>' if improve else "")
+            + '</div>'
+        )
+
+    st.markdown(
+        f'<div class="score-card">'
+        f'<div class="sc-overall">Answer Score: '
+        f'<span style="color:{overall_color}">{overall}</span>'
+        f'<span class="sc-denom"> / 10</span></div>'
+        f'{bars_html}{fb_html}'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+
 MODEL_OPTIONS = ["gpt-4o-mini", "gpt-4o", "gpt-4.1-nano", "gpt-4.1-mini", "gpt-4.1"]
 
 MODEL_LABELS = {
@@ -806,6 +908,69 @@ iframe[title*="streamlit_mic_recorder"] {
     background: rgba(255, 255, 255, 0.05) !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
+
+/* ── Answer Score Card ───────────────────────────────────────────────── */
+.score-card {
+    background: rgba(124, 58, 237, 0.07) !important;
+    border: 1px solid rgba(124, 58, 237, 0.18) !important;
+    border-left: 3px solid #7c3aed !important;
+    border-radius: 10px !important;
+    padding: 14px 16px 12px !important;
+    margin: -4px 0 20px 0 !important;
+    font-family: 'Inter', sans-serif !important;
+}
+.sc-overall {
+    font-size: 0.86rem !important;
+    font-weight: 600 !important;
+    color: rgba(255,255,255,0.85) !important;
+    margin-bottom: 10px !important;
+    letter-spacing: 0.01em !important;
+}
+.sc-denom {
+    font-weight: 400 !important;
+    color: rgba(255,255,255,0.38) !important;
+    font-size: 0.82rem !important;
+}
+.sc-dim-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin: 5px 0 !important;
+}
+.sc-dim-label {
+    width: 155px !important;
+    font-size: 0.77rem !important;
+    color: rgba(255,255,255,0.60) !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+}
+.sc-bar-track {
+    flex: 1 !important;
+    height: 3px !important;
+    background: rgba(255,255,255,0.08) !important;
+    border-radius: 2px !important;
+    overflow: hidden !important;
+}
+.sc-bar-fill {
+    height: 100% !important;
+    border-radius: 2px !important;
+}
+.sc-val {
+    width: 20px !important;
+    text-align: right !important;
+    font-size: 0.77rem !important;
+    color: rgba(255,255,255,0.45) !important;
+}
+.sc-feedback {
+    margin-top: 10px !important;
+    padding-top: 8px !important;
+    border-top: 1px solid rgba(255,255,255,0.06) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+}
+.sc-strength { font-size: 0.78rem !important; color: #4ade80 !important; }
+.sc-improve  { font-size: 0.78rem !important; color: #fb923c !important; }
 """
 
     _css_js = json.dumps(_CSS)
@@ -939,21 +1104,37 @@ if mode == "Mock Interviewer (Role-Play)":
 else:
     persona = "😐 Neutral"
 
-with st.sidebar.expander("Job Description (optional)", expanded=False):
-    job_description = st.text_area(
+with st.sidebar.expander("Your Profile (optional)", expanded=False):
+    st.caption("Resume · add your background for personalised scoring")
+    st.text_area(
+        "Resume highlights",
+        key="resume",
+        height=90,
+        max_chars=1500,
+        placeholder="Key skills, years of experience, past roles…",
+        label_visibility="collapsed",
+    )
+    st.markdown("<div style='margin-top:10px'></div>", unsafe_allow_html=True)
+    st.caption("Job Description · paste the posting for tailored questions")
+    st.text_area(
         "Paste the job posting",
-        value="",
-        height=150,
+        key="jd_input",
+        height=110,
         max_chars=MAX_JD_LENGTH,
         placeholder="e.g. Senior Software Engineer at Acme Corp...\n\nResponsibilities:\n- Build scalable APIs\n- Lead code reviews...",
         help="Paste the actual job description to get tailored questions and advice for that specific role.",
         label_visibility="collapsed",
     )
-    if job_description:
-        st.caption(f"{len(job_description)} / {MAX_JD_LENGTH} chars")
-        if _is_injection(job_description):
-            st.error("⚠️ Job description contains disallowed content.")
-            job_description = ""
+
+resume_text = st.session_state.get("resume", "")
+job_description = st.session_state.get("jd_input", "")
+
+if resume_text and _is_injection(resume_text):
+    st.sidebar.error("⚠️ Resume contains disallowed content.")
+    resume_text = ""
+if job_description and _is_injection(job_description):
+    st.sidebar.error("⚠️ Job description contains disallowed content.")
+    job_description = ""
 
 with st.sidebar.expander("About this mode", expanded=False):
     st.markdown(PROMPTS[mode]["description"])
@@ -1051,6 +1232,7 @@ if st.sidebar.button("🗑️ Clear Chat", width="stretch"):
     st.session_state.total_output_tokens = 0
     st.session_state.interviewer_avatar_url = None
     st.session_state.interviewer_avatar_role = None
+    st.session_state.scores = {}
     st.rerun()
 
 # --- API Key Validation ---
@@ -1081,6 +1263,12 @@ if "pending_suggestion" not in st.session_state:
     st.session_state.pending_suggestion = None
 if "last_mic_id" not in st.session_state:
     st.session_state.last_mic_id = None
+if "scores" not in st.session_state:
+    st.session_state.scores = {}  # {user_msg_index: score_dict}
+if "resume" not in st.session_state:
+    st.session_state.resume = ""
+if "jd_input" not in st.session_state:
+    st.session_state.jd_input = ""
 if "current_persona" not in st.session_state:
     st.session_state.current_persona = persona
 if "interviewer_avatar_url" not in st.session_state:
@@ -1100,6 +1288,7 @@ if (
     st.session_state.total_output_tokens = 0
     st.session_state.interviewer_avatar_url = None
     st.session_state.interviewer_avatar_role = None
+    st.session_state.scores = {}
     st.session_state.current_mode = mode
     st.session_state.current_role = job_role
     st.session_state.current_model = model
@@ -1234,9 +1423,12 @@ if not st.session_state.messages:
                 st.markdown(f'<span class="suggestion-sub">{s["sub"]}</span>', unsafe_allow_html=True)
 
 # Display chat history
-for msg in st.session_state.messages:
+for _i, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
+    # Score card appears after the assistant message that follows a scored user answer
+    if msg["role"] == "assistant" and (_i - 1) in st.session_state.scores:
+        _render_score_card(st.session_state.scores[_i - 1])
 
 # Stats in sidebar
 if st.session_state.messages:
@@ -1259,6 +1451,27 @@ if st.session_state.messages:
         f"${total_cost:.4f}",
         help="Estimated cost based on current OpenAI pricing. Prices may change.",
     )
+
+# ── Performance Tracker ───────────────────────────────────────────────
+if st.session_state.scores:
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("#### Performance Tracker")
+    # Aggregate scores across all scored answers
+    _all_dims: dict[str, list[float]] = {}
+    for _s in st.session_state.scores.values():
+        for _dim, _val in _s.get("dimensions", {}).items():
+            _all_dims.setdefault(_dim, []).append(float(_val))
+
+    for _dim, _vals in _all_dims.items():
+        _avg = sum(_vals) / len(_vals)
+        _icon = "🟢" if _avg >= 7 else "🟡" if _avg >= 5 else "🔴"
+        st.sidebar.caption(f"{_icon} **{_dim}**: {_avg:.1f} / 10")
+
+    # Weak spot callout
+    _weakest_dim, _weakest_vals = min(_all_dims.items(), key=lambda x: sum(x[1]) / len(x[1]))
+    _weakest_avg = sum(_weakest_vals) / len(_weakest_vals)
+    if _weakest_avg < 7.5:
+        st.sidebar.warning(f"Focus area: **{_weakest_dim}** ({_weakest_avg:.1f}/10)")
 
 # --- Voice Input ---
 audio_data = mic_recorder(
@@ -1322,6 +1535,13 @@ if user_input:
             f"The candidate is applying for the following position. Tailor all your "
             f"questions, feedback, and advice specifically to this role:\n\n{job_description}"
         )
+    # Inject resume context if provided
+    if resume_text.strip():
+        system_prompt += (
+            f"\n\nCANDIDATE BACKGROUND:\n"
+            f"The candidate has the following experience. Calibrate question difficulty, "
+            f"examples, and feedback to their level:\n\n{resume_text[:1000]}"
+        )
     api_messages = [{"role": "system", "content": system_prompt}]
     for msg in st.session_state.messages:
         api_messages.append({"role": msg["role"], "content": msg["content"]})
@@ -1358,6 +1578,23 @@ if user_input:
             if response.usage:
                 st.session_state.total_input_tokens += response.usage.prompt_tokens
                 st.session_state.total_output_tokens += response.usage.completion_tokens
+
+            # Score the user's answer if it's substantive enough
+            if _should_score(mode, user_input):
+                with st.spinner("Scoring your answer…"):
+                    # Use the last assistant message (the question) as context
+                    _question_ctx = ""
+                    msgs = st.session_state.messages
+                    if len(msgs) >= 3 and msgs[-3]["role"] == "assistant":
+                        _question_ctx = msgs[-3]["content"][:500]
+                    _score = _score_answer(
+                        client, _question_ctx, user_input, job_role, mode,
+                        resume=resume_text, jd=job_description,
+                    )
+                if _score:
+                    _user_idx = len(st.session_state.messages) - 2
+                    st.session_state.scores[_user_idx] = _score
+                    _render_score_card(_score)
         except Exception as e:
             thinking_placeholder.empty()
             st.error(f"Error calling OpenAI API: {e}")
