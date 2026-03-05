@@ -918,19 +918,12 @@ col1, col2, col3 = st.columns([2, 5, 2])
 with col2:
     if user_msgs > 0:
         st.markdown(
-            f"# {MODE_ICONS.get(mode, '💼')} Interview Practice"
+            f'# Interview Practice'
             f'<span class="q-counter">Question {user_msgs}</span>',
             unsafe_allow_html=True,
         )
     else:
-        st.markdown(f"# {MODE_ICONS.get(mode, '💼')} Interview Practice")
-    st.markdown(
-        f'<div style="text-align:center; margin-bottom: 8px;">'
-        f'<span class="context-badge">'
-        f'{job_role} · {MODE_SHORT[mode]} · {MODEL_LABELS[model]}'
-        f'</span></div>',
-        unsafe_allow_html=True,
-    )
+        st.markdown("# Interview Practice")
 
 # --- Empty State: Welcome Box + CTA ---
 if not st.session_state.messages:
