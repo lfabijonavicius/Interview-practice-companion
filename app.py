@@ -1455,26 +1455,27 @@ components.html("""
   `;
 
   function styleMicAndFloat() {
-    var pd = window.parent.document;
-    var iframes = pd.querySelectorAll('iframe[title*="streamlit_mic_recorder"]');
-    var chatInput = pd.querySelector('[data-testid="stChatInput"]');
+    var pd           = window.parent.document;
+    var iframes      = pd.querySelectorAll('iframe[title*="streamlit_mic_recorder"]');
+    var chatInputDiv = pd.querySelector('[data-testid="stChatInput"] > div');
+    var textarea     = pd.querySelector('[data-testid="stChatInput"] textarea');
 
     iframes.forEach(function (iframe) {
-      // ── Float container into the chat input ──────────────────────────
       var micContainer = iframe.closest('div[data-testid="stElementContainer"]');
-      if (chatInput && micContainer && !iframe.dataset.floated) {
-        micContainer.style.position = 'absolute';
-        micContainer.style.left     = '14px';
-        micContainer.style.bottom   = '18px';
+
+      // ── Fixed positioning — magnetically locks to chat input on scroll/resize ──
+      if (chatInputDiv && micContainer) {
+        var rect = chatInputDiv.getBoundingClientRect();
+        micContainer.style.position = 'fixed';
+        micContainer.style.left     = (rect.left + 14) + 'px';
+        micContainer.style.top      = (rect.top + (rect.height - 44) / 2) + 'px';
         micContainer.style.width    = '44px';
         micContainer.style.height   = '44px';
-        micContainer.style.zIndex   = '9999';
-        var textarea = chatInput.querySelector('textarea');
+        micContainer.style.zIndex   = '999999';
         if (textarea) { textarea.style.paddingLeft = '50px'; }
-        iframe.dataset.floated = '1';
       }
 
-      // ── Inject SVG styles into iframe document ───────────────────────
+      // ── Aggressively re-inject SVG if Streamlit wipes the iframe ─────
       try {
         var idoc = iframe.contentDocument || iframe.contentWindow.document;
         if (!idoc || idoc.getElementById('svg-mic-style')) return;
@@ -1482,20 +1483,17 @@ components.html("""
         s.id = 'svg-mic-style';
         s.innerHTML = INNER_CSS;
         (idoc.head || idoc.documentElement).appendChild(s);
-        // Toggle .recording class based on which SVG should show
         idoc.addEventListener('click', function () {
           setTimeout(function () {
             var btn = idoc.querySelector('button');
-            if (!btn) return;
-            // After click: if it was idle it's now recording, vice versa
-            btn.classList.toggle('recording');
+            if (btn) { btn.classList.toggle('recording'); }
           }, 80);
         });
       } catch (e) { /* cross-origin guard */ }
     });
   }
 
-  setInterval(styleMicAndFloat, 200);
+  setInterval(styleMicAndFloat, 50);
 })();
 </script>
 """, height=0)
