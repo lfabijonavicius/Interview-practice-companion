@@ -360,31 +360,32 @@ div.stButton > button:hover,
     box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
 }
 
-/* ── Primary CTA: purple glow ────────────────────────────────────────── */
+/* ── Primary CTA: tactile gradient ──────────────────────────────────── */
 [data-testid="baseButton-primary"],
 div.stButton > button[kind="primary"],
 .cta-wrap .stButton > button,
 .cta-wrap [data-testid="baseButton-primary"] {
-    background: linear-gradient(135deg, #4338ca, #7c3aed) !important;
+    background: linear-gradient(180deg, #8b5cf6 0%, #6d28d9 100%) !important;
     border: none !important;
     color: #fff !important;
     font-weight: 600 !important;
     letter-spacing: 0.02em !important;
-    box-shadow: 0 0 20px rgba(124, 58, 237, 0.4) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 4px 12px rgba(109, 40, 217, 0.4) !important;
     animation: cta-pulse 2.8s ease-in-out infinite !important;
 }
 .cta-wrap .stButton > button:hover,
 .cta-wrap [data-testid="baseButton-primary"]:hover {
-    background: linear-gradient(135deg, #4f46e5, #8b5cf6) !important;
+    background: linear-gradient(180deg, #9d6ef8 0%, #7c3aed 100%) !important;
     transform: translateY(-2px) !important;
-    box-shadow: 0 0 32px rgba(124, 58, 237, 0.65) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 8px 24px rgba(109, 40, 217, 0.55) !important;
 }
 
 /* ── Command Center (chat input) ─────────────────────────────────────── */
 [data-testid="stChatInput"] > div {
-    background: #18181b !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background: rgba(24, 24, 27, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
     border-radius: 12px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
     transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
 }
 [data-testid="stChatInput"] > div:focus-within {
@@ -506,6 +507,7 @@ small {
 /* ── Suggestion buttons: frosted glass, purple hover ─────────────────── */
 .suggestion-btn button {
     white-space: normal !important; word-break: break-word !important;
+    width: 100% !important;
     height: auto !important; text-align: left !important;
     padding: 16px 18px !important; line-height: 1.5 !important;
     border-radius: 12px !important; font-size: 0.88em !important; font-weight: 500 !important;
@@ -527,6 +529,15 @@ small {
     min-height: 96px !important;
     align-items: flex-start !important;
 }
+/* Subtext hugs the button */
+.suggestion-sub {
+    display: block !important;
+    color: #71717a !important;
+    font-size: 0.75rem !important;
+    margin-top: 6px !important;
+    padding: 0 2px !important;
+    letter-spacing: 0.01em !important;
+}
 
 /* ── Misc ────────────────────────────────────────────────────────────── */
 .stat-card {
@@ -536,9 +547,9 @@ small {
     border: 1px solid rgba(255,255,255,0.1) !important;
 }
 .topics-label {
-    font-size: 10px !important; font-weight: 700 !important;
-    letter-spacing: 0.14em !important; text-transform: uppercase !important;
-    color: #71717a !important; margin: 24px 0 12px 0 !important;
+    font-size: 0.75rem !important; font-weight: 600 !important;
+    letter-spacing: 0.1em !important; text-transform: uppercase !important;
+    color: #71717a !important; margin: 24px 0 1rem 0 !important;
     padding: 0 !important;
 }
 
@@ -1014,7 +1025,7 @@ if not st.session_state.messages:
                 if st.button(s["text"], key=f"suggestion_{i}", width="stretch"):
                     st.session_state.pending_suggestion = s["text"]
                 st.markdown('</div>', unsafe_allow_html=True)
-                st.markdown(f'<span style="color: #a1a1aa; font-size: 0.85em;">{s["sub"]}</span>', unsafe_allow_html=True)
+                st.markdown(f'<span class="suggestion-sub">{s["sub"]}</span>', unsafe_allow_html=True)
     else:
         cols = st.columns(max(len(active_suggestions), 1), gap="medium")
         for i, s in enumerate(active_suggestions):
@@ -1023,7 +1034,7 @@ if not st.session_state.messages:
                 if st.button(s["text"], key=f"suggestion_{i}", width="stretch"):
                     st.session_state.pending_suggestion = s["text"]
                 st.markdown('</div>', unsafe_allow_html=True)
-                st.markdown(f'<span style="color: #a1a1aa; font-size: 0.85em;">{s["sub"]}</span>', unsafe_allow_html=True)
+                st.markdown(f'<span class="suggestion-sub">{s["sub"]}</span>', unsafe_allow_html=True)
 
 # Display chat history
 for msg in st.session_state.messages:
