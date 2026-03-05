@@ -346,10 +346,15 @@ def inject_futuristic_theme() -> None:
 
     /* ── Global text: override Streamlit light-theme defaults ────────────── */
     body, [data-testid="stAppViewContainer"],
-    div[class*="st-"], p, li, label, span, caption {
+    div[class*="st-"], p, li, label, caption {
         color: rgba(255, 255, 255, 0.85) !important;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
     }
+    /* Protect Streamlit icon ligature font from being overridden */
+    [data-testid="stExpander"] summary span,
+    [data-testid="stExpander"] span[class*="Icon"],
+    span[data-baseweb], span[class*="icon"],
+    [class*="Icon"] { font-family: unset !important; }
     h1 { font-weight: 800 !important; letter-spacing: -0.04em !important; color: rgba(255,255,255,0.96) !important; }
     h2, h3, h4, h5, h6 { font-weight: 700 !important; letter-spacing: -0.02em !important; color: rgba(255,255,255,0.92) !important; }
 
@@ -534,7 +539,8 @@ def inject_futuristic_theme() -> None:
         opacity: 0.35 !important; margin: 20px 0 10px 0 !important;
         padding: 0 !important; color: rgba(255,255,255,0.85) !important;
     }
-    .bento-lg .stButton > button { min-height: 96px !important; align-items: flex-start !important; padding: 18px 16px !important; }
+    .suggestion-btn .stButton > button,
+    .suggestion-btn [data-testid^="baseButton"] { min-height: 96px !important; align-items: flex-start !important; }
     .cta-wrap .stButton > button,
     .cta-wrap [data-testid="baseButton-primary"] {
         background: linear-gradient(135deg,#4338ca,#7c3aed) !important;
@@ -962,18 +968,11 @@ if not st.session_state.messages:
 
     st.markdown('<p class="topics-label">Choose a specific topic</p>', unsafe_allow_html=True)
 
-    # Bento grid: card 0 is wide+tall, cards 1–2 stack in the narrower column
+    # Suggestion cards: 3 equal columns, all aligned in one row
     if len(active_suggestions) >= 3:
-        col_l, col_r = st.columns([3, 2])
-        with col_l:
-            s = active_suggestions[0]
-            st.markdown('<div class="suggestion-btn suggestion-btn-0 bento-lg">', unsafe_allow_html=True)
-            if st.button(s["text"], key="suggestion_0", width="stretch"):
-                st.session_state.pending_suggestion = s["text"]
-            st.markdown('</div>', unsafe_allow_html=True)
-            st.caption(s["sub"])
-        with col_r:
-            for i in range(1, 3):
+        cols = st.columns(3)
+        for i in range(3):
+            with cols[i]:
                 s = active_suggestions[i]
                 st.markdown(f'<div class="suggestion-btn suggestion-btn-{i}">', unsafe_allow_html=True)
                 if st.button(s["text"], key=f"suggestion_{i}", width="stretch"):
