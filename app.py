@@ -529,12 +529,16 @@ small {
     min-height: 96px !important;
     align-items: flex-start !important;
 }
+/* Collapse gap in suggestion columns so subtext hugs the button */
+[data-testid="column"]:has(.suggestion-btn) [data-testid="stVerticalBlock"] {
+    gap: 0 !important;
+}
 /* Subtext hugs the button */
 .suggestion-sub {
     display: block !important;
     color: #71717a !important;
     font-size: 0.75rem !important;
-    margin-top: 6px !important;
+    margin-top: 4px !important;
     padding: 0 2px !important;
     letter-spacing: 0.01em !important;
 }
