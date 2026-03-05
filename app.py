@@ -438,11 +438,12 @@ def inject_futuristic_theme() -> None:
     /* ── Sidebar expander summary text ───────────────────────────────────── */
     [data-testid="stSidebar"] [data-testid="stExpander"] summary p,
     [data-testid="stSidebar"] [data-testid="stExpander"] summary div[class*="st-"] {
-        font-size: 10px !important;
-        font-weight: 700 !important;
-        letter-spacing: 0.14em !important;
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.08em !important;
         text-transform: uppercase !important;
-        opacity: 0.35 !important;
+        color: rgba(255, 255, 255, 0.65) !important;
+        opacity: 1 !important;
         margin: 0 !important;
     }
 
