@@ -391,7 +391,9 @@ div.stButton > button[kind="primary"],
     border-color: #7c3aed !important;
     box-shadow: 0 0 0 1px #7c3aed, 0 8px 32px rgba(124, 58, 237, 0.25) !important;
 }
-[data-testid="stChatInput"] textarea {
+[data-testid="stChatInput"] textarea,
+[data-testid="stChatInput"] > div > div,
+[data-testid="stChatInput"] > div > div > div {
     background: transparent !important;
     caret-color: #a5b4fc !important;
     color: rgba(255, 255, 255, 0.88) !important;
@@ -659,7 +661,7 @@ small {
 inject_futuristic_theme()
 
 
-st.sidebar.markdown("## ⚙️ Settings")
+st.sidebar.markdown("## Settings")
 
 st.sidebar.markdown('<p class="sidebar-label">Practice Mode</p>', unsafe_allow_html=True)
 
@@ -918,12 +920,12 @@ col1, col2, col3 = st.columns([2, 5, 2])
 with col2:
     if user_msgs > 0:
         st.markdown(
-            f'# Interview Practice'
-            f'<span class="q-counter">Question {user_msgs}</span>',
+            f'<h1 style="text-align:center;">Interview Practice'
+            f'<span class="q-counter">Question {user_msgs}</span></h1>',
             unsafe_allow_html=True,
         )
     else:
-        st.markdown("# Interview Practice")
+        st.markdown('<h1 style="text-align:center;">Interview Practice</h1>', unsafe_allow_html=True)
 
 # --- Empty State: Welcome Box + CTA ---
 if not st.session_state.messages:
