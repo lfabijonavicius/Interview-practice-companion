@@ -291,7 +291,7 @@ html {
     background-color: #000000 !important;
     background-image:
         radial-gradient(ellipse 100% 55% at 50% 100%, transparent 15%, #000000 65%),
-        radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px) !important;
+        radial-gradient(rgba(255,255,255,0.1) 1px, transparent 0) !important;
     background-size: 100% 100%, 24px 24px !important;
     background-attachment: fixed, fixed !important;
 }
