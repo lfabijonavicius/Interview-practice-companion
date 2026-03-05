@@ -557,6 +557,51 @@ small {
     padding: 0 !important;
 }
 
+/* ── Premium Welcome Card ────────────────────────────────────────────── */
+.welcome-card-premium {
+    background: linear-gradient(180deg, rgba(24,24,27,0.7) 0%, rgba(9,9,11,0.8) 100%) !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    border-top: 1px solid rgba(168,85,247,0.4) !important;
+    border-radius: 16px !important; padding: 2.5rem !important;
+    text-align: center !important;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+    backdrop-filter: blur(20px) !important; margin-bottom: 2rem !important;
+}
+.welcome-header {
+    display: flex !important; justify-content: center !important;
+    align-items: center !important; gap: 12px !important; margin-bottom: 10px !important;
+}
+.welcome-icon { color: #a855f7 !important; filter: drop-shadow(0 0 8px rgba(168,85,247,0.5)) !important; }
+.welcome-title { font-size: 1.8rem !important; font-weight: 700 !important; color: #ffffff !important; margin: 0 !important; }
+.title-muted { color: #71717a !important; font-weight: 500 !important; font-size: 1.4rem !important; }
+.welcome-subtitle { color: #a1a1aa !important; font-size: 1rem !important; margin-bottom: 2rem !important; }
+.role-highlight { color: #e9d5ff !important; font-weight: 600 !important; border-bottom: 1px dashed rgba(168,85,247,0.5) !important; }
+.steps-row {
+    display: flex !important; justify-content: center !important;
+    gap: 16px !important; flex-wrap: wrap !important;
+}
+.step-pill {
+    display: flex !important; align-items: center !important; gap: 10px !important;
+    background: rgba(255,255,255,0.02) !important; border: 1px solid rgba(255,255,255,0.05) !important;
+    padding: 8px 18px 8px 8px !important; border-radius: 99px !important;
+    transition: all 0.2s ease !important; cursor: default !important;
+}
+.step-pill:hover {
+    background: rgba(255,255,255,0.05) !important;
+    border-color: rgba(168,85,247,0.4) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+}
+.step-num-badge {
+    display: flex !important; justify-content: center !important; align-items: center !important;
+    width: 26px !important; height: 26px !important;
+    background: linear-gradient(135deg, #a855f7, #6366f1) !important;
+    border-radius: 50% !important; color: white !important;
+    font-size: 0.8rem !important; font-weight: bold !important;
+    box-shadow: 0 0 10px rgba(168,85,247,0.4) !important; flex-shrink: 0 !important;
+}
+.step-text { color: #d4d4d8 !important; font-size: 0.9rem !important; font-weight: 500 !important; }
+
 /* ── Hero Section ────────────────────────────────────────────────────── */
 .hero-container {
     display: flex !important; flex-direction: column !important;
@@ -1007,18 +1052,23 @@ with col2:
 if not st.session_state.messages:
     cta_label = CTA_LABELS.get(mode, "▶  Start Practice")
 
+    # Build mode title: strip parenthetical tag for cleaner display
+    _mode_short = mode.split("(")[0].strip()
+    _mode_tag = f'({mode.split("(")[1]}' if "(" in mode else ""
     st.markdown(f"""
-<div class="welcome-box">
-  <h3 style="margin: 0 0 4px 0; text-align: center;">
-    {MODE_ICONS.get(mode, '💼')} {mode}
-  </h3>
-  <p style="opacity: 0.65; margin: 0; text-align: center; font-size: 0.92em;">
-    Preparing for a <strong>{job_role}</strong> role
-  </p>
-  <div class="welcome-steps">
-    <div class="welcome-step"><span class="step-num">1</span> Pick a mode &amp; role in the sidebar</div>
-    <div class="welcome-step"><span class="step-num">2</span> Click a suggestion or type your own</div>
-    <div class="welcome-step"><span class="step-num">3</span> Continue the conversation</div>
+<div class="welcome-card-premium">
+  <div class="welcome-header">
+    <svg class="welcome-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+      <path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/>
+    </svg>
+    <h2 class="welcome-title">{_mode_short} <span class="title-muted">{_mode_tag}</span></h2>
+  </div>
+  <p class="welcome-subtitle">Preparing for a <span class="role-highlight">{job_role}</span> role</p>
+  <div class="steps-row">
+    <div class="step-pill"><span class="step-num-badge">1</span><span class="step-text">Pick a mode &amp; role</span></div>
+    <div class="step-pill"><span class="step-num-badge">2</span><span class="step-text">Click a suggestion</span></div>
+    <div class="step-pill"><span class="step-num-badge">3</span><span class="step-text">Continue the chat</span></div>
   </div>
 </div>
 """, unsafe_allow_html=True)
