@@ -572,6 +572,48 @@ small {
     animation: border-beam-spin 5s linear infinite !important;
     pointer-events: none !important; z-index: 0 !important;
 }
+
+/* ── Phase 3: Premium Chat Bubbles ─────────────────────────────────────── */
+
+/* Base chat container */
+[data-testid="stChatMessage"] {
+    padding: 1.5rem !important;
+    margin-bottom: 1.5rem !important;
+    border-radius: 12px !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+}
+
+/* User message — subtle, muted, whispering */
+[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]),
+[data-testid="stChatMessage"]:nth-child(odd) {
+    background: rgba(24, 24, 27, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    box-shadow: none !important;
+}
+
+/* Assistant message — authoritative, elevated, purple tint */
+[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]),
+[data-testid="stChatMessage"]:nth-child(even) {
+    background: linear-gradient(145deg, rgba(24, 24, 27, 0.8), rgba(18, 18, 20, 0.9)) !important;
+    border: 1px solid rgba(124, 58, 237, 0.15) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Typography & readability */
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] {
+    color: rgba(255, 255, 255, 0.9) !important;
+    line-height: 1.65 !important;
+    font-size: 0.95rem !important;
+    letter-spacing: 0.01em !important;
+}
+
+/* Avatar — modern square app-icon style */
+[data-testid="stChatMessage"] [data-testid="stChatAvatar"] {
+    border-radius: 8px !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
 """
 
     _css_js = json.dumps(_CSS)
