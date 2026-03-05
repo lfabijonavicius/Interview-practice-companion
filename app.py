@@ -667,18 +667,31 @@ small {
 }
 
 /* ── Voice input ─────────────────────────────────────────────────────── */
-.mic-wrap {
+/* Center the column holding the mic iframe */
+div[data-testid="column"]:has(iframe) {
     display: flex !important;
     justify-content: center !important;
-    margin-bottom: 0.75rem !important;
+    align-items: center !important;
+    margin-bottom: -15px !important;
+    z-index: 10 !important;
 }
-/* Purple glow border around the mic component iframe */
-.mic-wrap [data-testid="stCustomComponentV1"],
-.mic-wrap iframe {
-    border-radius: 12px !important;
+/* Premium pill styling on the iframe itself */
+iframe[title="streamlit_mic_recorder"],
+iframe[title*="streamlit_mic_recorder"],
+iframe[title*="speech_to_text"] {
+    border-radius: 30px !important;
+    background: rgba(24, 24, 27, 0.6) !important;
     border: 1px solid rgba(124, 58, 237, 0.3) !important;
-    box-shadow: 0 0 16px rgba(124, 58, 237, 0.12) !important;
-    overflow: hidden !important;
+    box-shadow: 0 4px 20px rgba(124, 58, 237, 0.15) !important;
+    height: 45px !important;
+    transition: all 0.3s ease !important;
+}
+iframe[title="streamlit_mic_recorder"]:hover,
+iframe[title*="streamlit_mic_recorder"]:hover,
+iframe[title*="speech_to_text"]:hover {
+    border-color: rgba(124, 58, 237, 0.8) !important;
+    box-shadow: 0 4px 25px rgba(124, 58, 237, 0.3) !important;
+    transform: translateY(-1px) !important;
 }
 
 /* ── Keyframes ───────────────────────────────────────────────────────── */
@@ -1218,14 +1231,14 @@ if st.session_state.messages:
     )
 
 # --- Voice Input ---
-st.markdown('<div class="mic-wrap">', unsafe_allow_html=True)
-audio_data = mic_recorder(
-    start_prompt="🎤  Speak answer",
-    stop_prompt="⏹  Stop recording",
-    just_once=True,
-    key="mic_recorder",
-)
-st.markdown('</div>', unsafe_allow_html=True)
+_, _mic_c, __ = st.columns([1, 1, 1])
+with _mic_c:
+    audio_data = mic_recorder(
+        start_prompt="Tap to Speak",
+        stop_prompt="⏹  Stop Recording",
+        just_once=True,
+        key="mic_recorder",
+    )
 
 voice_input = None
 if audio_data and audio_data.get("id") != st.session_state.last_mic_id:
