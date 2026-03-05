@@ -278,9 +278,9 @@ def inject_futuristic_theme() -> None:
         except Exception:
             pass
 
-    st.markdown("""
-<div id="dot-bg-root"></div>
-<style>
+    # CSS injected via components.html JS → appended to window.parent.document.head
+    # (st.markdown strips <style> tags on Streamlit Cloud, rendering CSS as text)
+    _CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 /* ── Base ─────────────────────────────────────────────────────────────── */
@@ -568,8 +568,35 @@ small {
     animation: border-beam-spin 5s linear infinite !important;
     pointer-events: none !important; z-index: 0 !important;
 }
-</style>
-""", unsafe_allow_html=True)
+"""
+
+    _css_js = json.dumps(_CSS)
+
+    components.html(
+        f"""
+<script>
+(function () {{
+  var pd = window.parent.document;
+
+  // Inject dot-grid background div into body (once per page load)
+  if (!pd.getElementById('dot-bg-root')) {{
+    var bg = pd.createElement('div');
+    bg.id = 'dot-bg-root';
+    pd.body.prepend(bg);
+  }}
+
+  // Replace stylesheet in <head> so it always wins source-order
+  var existing = pd.getElementById('ft-style');
+  if (existing) existing.remove();
+  var s = pd.createElement('style');
+  s.id = 'ft-style';
+  s.textContent = {_css_js};
+  pd.head.appendChild(s);
+}})();
+</script>
+""",
+        height=0,
+    )
 
 
 # Apply the futuristic theme immediately after page config
