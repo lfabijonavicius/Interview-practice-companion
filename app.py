@@ -345,16 +345,15 @@ def inject_futuristic_theme() -> None:
     }
 
     /* ── Global text: override Streamlit light-theme defaults ────────────── */
+    /* Color on all st- elements; font-family scoped to known text nodes only */
+    /* so Streamlit's icon ligature font (_arrow_right etc.) is never clobbered */
     body, [data-testid="stAppViewContainer"],
     div[class*="st-"], p, li, label, caption {
         color: rgba(255, 255, 255, 0.85) !important;
+    }
+    body, p, li, label, caption {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
     }
-    /* Protect Streamlit icon ligature font from being overridden */
-    [data-testid="stExpander"] summary span,
-    [data-testid="stExpander"] span[class*="Icon"],
-    span[data-baseweb], span[class*="icon"],
-    [class*="Icon"] { font-family: unset !important; }
     h1 { font-weight: 800 !important; letter-spacing: -0.04em !important; color: rgba(255,255,255,0.96) !important; }
     h2, h3, h4, h5, h6 { font-weight: 700 !important; letter-spacing: -0.02em !important; color: rgba(255,255,255,0.92) !important; }
 
