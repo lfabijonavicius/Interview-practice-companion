@@ -257,161 +257,361 @@ def fluid_dropdown(options: list, value: str, key: str = None) -> str:
     result = _fluid_dropdown(options=options, value=value, key=key, default=value)
     return result if result is not None else value
 
-# --- Custom CSS ---
-st.markdown("""
-<style>
+def inject_futuristic_theme() -> None:
+    """
+    Injects the futuristic aurora theme by:
+      1. Setting Streamlit dark-mode config at runtime (belt-and-suspenders
+         alongside .streamlit/config.toml).
+      2. Using st.components.v1.html to run JS that appends a <style> tag
+         directly into window.parent.document.head — this reliably overrides
+         Streamlit's own styles because our tag is inserted last in <head>.
+      3. Prepending the aurora animated div into window.parent.document.body.
+    CSS selectors use [data-testid] attributes and div[class*='st-'] patterns
+    rather than volatile internal Streamlit class names.
+    """
+    # ── Runtime dark-mode (fallback when config.toml is absent) ──────────────
+    _THEME_OPTS = {
+        "theme.base":                     "dark",
+        "theme.backgroundColor":          "#020617",
+        "theme.secondaryBackgroundColor": "rgba(2,6,23,0.72)",
+        "theme.textColor":                "rgba(255,255,255,0.88)",
+        "theme.primaryColor":             "#7c3aed",
+    }
+    for key, val in _THEME_OPTS.items():
+        try:
+            st._config.set_option(key, val)
+        except Exception:
+            pass  # _config is internal; safe to swallow
+
+    # ── CSS — injected via JS into <head> so it always wins ──────────────────
+    _CSS = """
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-    html, body, [class*="css"] {
+    /* ── Aurora background ───────────────────────────────────────────────── */
+    .aurora-bg {
+        position: fixed !important;
+        inset: 0 !important;
+        z-index: -1 !important;
+        pointer-events: none !important;
+        overflow: hidden !important;
+        background: #020617 !important;
+    }
+    .aurora-orb {
+        position: absolute !important;
+        border-radius: 50% !important;
+        filter: blur(90px) !important;
+        animation: aurora-float 20s ease-in-out infinite !important;
+    }
+    .aurora-orb-1 {
+        width: 55vw !important; height: 55vw !important;
+        background: rgba(67, 56, 202, 0.38) !important;
+        top: -20% !important; left: -12% !important;
+        animation-duration: 16s !important;
+    }
+    .aurora-orb-2 {
+        width: 48vw !important; height: 48vw !important;
+        background: rgba(124, 58, 237, 0.32) !important;
+        bottom: -18% !important; right: -10% !important;
+        animation-duration: 22s !important;
+        animation-delay: -8s !important;
+    }
+    .aurora-orb-3 {
+        width: 36vw !important; height: 36vw !important;
+        background: rgba(99, 102, 241, 0.25) !important;
+        top: 38% !important; left: 42% !important;
+        animation-duration: 28s !important;
+        animation-delay: -14s !important;
+    }
+    @keyframes aurora-float {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        33%       { transform: translate(50px, -70px) scale(1.08); }
+        66%       { transform: translate(-35px, 45px) scale(0.94); }
+    }
+
+    /* ── Base: transparent containers so aurora shows through ────────────── */
+    [data-testid="stAppViewContainer"] {
+        background: transparent !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+    }
+    [data-testid="stAppViewBlockContainer"],
+    [data-testid="stHeader"],
+    [data-testid="stToolbar"],
+    [data-testid="stDecoration"],
+    div[class*="appview-container"],
+    div[class*="main"],
+    section[class*="main"] {
+        background: transparent !important;
+    }
+
+    /* ── Global text: override Streamlit light-theme defaults ────────────── */
+    body, [data-testid="stAppViewContainer"],
+    div[class*="st-"], p, li, label, span, caption {
+        color: rgba(255, 255, 255, 0.85) !important;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
     }
+    h1 { font-weight: 800 !important; letter-spacing: -0.04em !important; color: rgba(255,255,255,0.96) !important; }
+    h2, h3, h4, h5, h6 { font-weight: 700 !important; letter-spacing: -0.02em !important; color: rgba(255,255,255,0.92) !important; }
 
-    h1 { font-weight: 800 !important; letter-spacing: -0.5px !important; }
-    h2, h3 { font-weight: 700 !important; }
+    /* ── Sidebar glass panel ─────────────────────────────────────────────── */
+    [data-testid="stSidebar"] {
+        background: rgba(2, 6, 23, 0.72) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+    }
+    [data-testid="stSidebar"] > div:first-child {
+        background: rgba(2, 6, 23, 0.72) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+    }
 
-    /* Compact context badge beneath the title */
+    /* ── Main block container: subtle glass ──────────────────────────────── */
+    [data-testid="stAppViewContainer"] > section > div[class*="block-container"],
+    div[class*="block-container"] {
+        background: rgba(255, 255, 255, 0.02) !important;
+        border-radius: 20px !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        backdrop-filter: blur(6px) !important;
+        -webkit-backdrop-filter: blur(6px) !important;
+    }
+
+    /* ── Buttons: dark glass base ────────────────────────────────────────── */
+    div.stButton > button,
+    [data-testid="baseButton-secondary"] {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        color: rgba(255, 255, 255, 0.88) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border-radius: 10px !important;
+        font-weight: 500 !important;
+        transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease !important;
+    }
+    div.stButton > button:hover,
+    [data-testid="baseButton-secondary"]:hover {
+        background: rgba(255, 255, 255, 0.10) !important;
+        border-color: rgba(99, 102, 241, 0.45) !important;
+        box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2) !important;
+    }
+    [data-testid="baseButton-primary"],
+    div.stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #4338ca, #7c3aed) !important;
+        border: none !important;
+        color: #fff !important;
+    }
+
+    /* ── Chat input: floating command bar ────────────────────────────────── */
+    [data-testid="stChatInput"] {
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+    }
+    [data-testid="stChatInput"] > div {
+        background: rgba(2, 6, 23, 0.80) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.10) !important;
+        border-radius: 16px !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+        transition: box-shadow 0.25s ease, border-color 0.25s ease !important;
+    }
+    [data-testid="stChatInput"] > div:focus-within {
+        border-color: rgba(99, 102, 241, 0.45) !important;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 0 32px rgba(99,102,241,0.07) !important;
+    }
+    [data-testid="stChatInput"] textarea {
+        background: transparent !important;
+        caret-color: #a5b4fc !important;
+        color: rgba(255, 255, 255, 0.88) !important;
+    }
+    [data-testid="stChatInput"] textarea::placeholder {
+        color: rgba(255, 255, 255, 0.28) !important;
+    }
+
+    /* ── Sidebar iframe (fluid dropdown) ─────────────────────────────────── */
+    [data-testid="stSidebar"] iframe { border: none !important; }
+
+    /* ── Sidebar expander summary text ───────────────────────────────────── */
+    [data-testid="stSidebar"] [data-testid="stExpander"] summary p,
+    [data-testid="stSidebar"] [data-testid="stExpander"] summary div[class*="st-"] {
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.14em !important;
+        text-transform: uppercase !important;
+        opacity: 0.35 !important;
+        margin: 0 !important;
+    }
+
+    /* ── Sidebar text input ──────────────────────────────────────────────── */
+    [data-testid="stSidebar"] [data-testid="stTextInput"] input,
+    [data-testid="stSidebar"] input[class*="st-"] {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.10) !important;
+        border-radius: 12px !important;
+        color: rgba(255, 255, 255, 0.88) !important;
+        font-size: 12.5px !important;
+        font-weight: 500 !important;
+        box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2) !important;
+        transition: border-color 0.15s, background 0.15s, box-shadow 0.15s !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stTextInput"] input:focus {
+        border-color: rgba(99, 102, 241, 0.6) !important;
+        background: rgba(255, 255, 255, 0.07) !important;
+        box-shadow: 0 0 0 1px rgba(99,102,241,0.25), 0 4px 16px rgba(99,102,241,0.15) !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stTextInput"] input::placeholder {
+        color: rgba(255, 255, 255, 0.28) !important;
+    }
+
+    /* ── Custom component classes ────────────────────────────────────────── */
+    .sidebar-label {
+        font-size: 10px !important; font-weight: 700 !important;
+        letter-spacing: 0.14em !important; text-transform: uppercase !important;
+        opacity: 0.35 !important; margin: 0 0 6px 2px !important;
+        padding: 0 !important; line-height: 1 !important;
+    }
     .context-badge {
-        display: inline-block;
-        padding: 5px 14px;
-        border-radius: 20px;
-        background: rgba(102, 126, 234, 0.1);
-        border: 1px solid rgba(102, 126, 234, 0.25);
-        color: #667eea;
-        font-size: 0.82em;
-        font-weight: 500;
-        letter-spacing: 0.3px;
-        margin-top: 2px;
+        display: inline-block !important; padding: 5px 14px !important;
+        border-radius: 20px !important; background: rgba(99,102,241,0.12) !important;
+        border: 1px solid rgba(99,102,241,0.3) !important; color: #a5b4fc !important;
+        font-size: 0.82em !important; font-weight: 500 !important;
+        letter-spacing: 0.04em !important; margin-top: 2px !important;
     }
-
-    /* Question counter badge shown in the header during an active session */
     .q-counter {
-        display: inline-block;
-        padding: 3px 12px;
-        border-radius: 12px;
-        background: rgba(102, 126, 234, 0.12);
-        color: #667eea;
-        font-size: 0.55em;
-        font-weight: 600;
-        vertical-align: middle;
-        margin-left: 14px;
-        letter-spacing: 0.5px;
+        display: inline-block !important; padding: 3px 12px !important;
+        border-radius: 12px !important; background: rgba(99,102,241,0.15) !important;
+        color: #a5b4fc !important; font-size: 0.55em !important;
+        font-weight: 600 !important; vertical-align: middle !important;
+        margin-left: 14px !important; letter-spacing: 0.08em !important;
     }
-
-    /* Welcome / hero box — glassmorphism */
     .welcome-box {
-        background: rgba(102, 126, 234, 0.07);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(102, 126, 234, 0.22);
-        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.1), 0 2px 8px rgba(0, 0, 0, 0.06);
-        padding: 32px 28px 26px;
-        border-radius: 18px;
-        margin-bottom: 20px;
+        position: relative !important;
+        background: rgba(255, 255, 255, 0.03) !important;
+        backdrop-filter: blur(24px) !important;
+        -webkit-backdrop-filter: blur(24px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06) !important;
+        padding: 32px 28px 26px !important;
+        border-radius: 18px !important;
+        margin-bottom: 20px !important;
+        animation: slide-up-fade 0.55s cubic-bezier(0.16,1,0.3,1) both !important;
     }
-    .welcome-steps {
-        display: flex;
-        justify-content: center;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-top: 18px;
-    }
+    .welcome-steps { display: flex !important; justify-content: center !important; gap: 10px !important; flex-wrap: wrap !important; margin-top: 18px !important; }
     .welcome-step {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 14px;
-        border-radius: 10px;
-        background: rgba(102, 126, 234, 0.08);
-        border: 1px solid rgba(102, 126, 234, 0.15);
-        font-size: 0.84em;
-        font-weight: 500;
+        display: flex !important; align-items: center !important; gap: 8px !important;
+        padding: 8px 14px !important; border-radius: 10px !important;
+        background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.08) !important;
+        font-size: 0.84em !important; font-weight: 500 !important; color: rgba(255,255,255,0.80) !important;
     }
     .step-num {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
-        background: #667eea;
-        color: white;
-        font-size: 0.75em;
-        font-weight: 700;
-        flex-shrink: 0;
+        display: inline-flex !important; align-items: center !important; justify-content: center !important;
+        width: 22px !important; height: 22px !important; border-radius: 50% !important;
+        background: linear-gradient(135deg,#4338ca,#7c3aed) !important; color: white !important;
+        font-size: 0.75em !important; font-weight: 700 !important; flex-shrink: 0 !important;
     }
-
-    /* Suggestion chips — wrapping + hover lift */
     .suggestion-btn button {
-        white-space: normal !important;
-        word-break: break-word !important;
-        height: auto !important;
-        text-align: left !important;
-        padding: 12px 16px !important;
-        line-height: 1.4 !important;
-        border-radius: 12px !important;
-        font-size: 0.88em !important;
-        font-weight: 500 !important;
+        white-space: normal !important; word-break: break-word !important;
+        height: auto !important; text-align: left !important;
+        padding: 12px 16px !important; line-height: 1.4 !important;
+        border-radius: 12px !important; font-size: 0.88em !important; font-weight: 500 !important;
+        background: rgba(255,255,255,0.04) !important; border: 1px solid rgba(255,255,255,0.10) !important;
+        color: rgba(255,255,255,0.88) !important;
         transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease !important;
     }
     .suggestion-btn button:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.28) !important;
-        border-color: rgba(102, 126, 234, 0.5) !important;
+        transform: translateY(-2px) !important; box-shadow: 0 6px 20px rgba(99,102,241,0.3) !important;
+        border-color: rgba(99,102,241,0.5) !important; background: rgba(99,102,241,0.08) !important;
     }
-
-    /* Stat card */
     .stat-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 16px 20px;
-        border-radius: 12px;
-        color: white;
-        text-align: center;
+        background: linear-gradient(135deg,#4338ca 0%,#7c3aed 100%) !important;
+        padding: 16px 20px !important; border-radius: 12px !important;
+        color: white !important; text-align: center !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
     }
-    .stat-card h3 { margin: 0; font-size: 1.8em; }
-    .stat-card p  { margin: 4px 0 0 0; opacity: 0.85; font-size: 0.9em; }
+    .topics-label {
+        font-size: 10px !important; font-weight: 700 !important;
+        letter-spacing: 0.14em !important; text-transform: uppercase !important;
+        opacity: 0.35 !important; margin: 20px 0 10px 0 !important;
+        padding: 0 !important; color: rgba(255,255,255,0.85) !important;
+    }
+    .bento-lg .stButton > button { min-height: 96px !important; align-items: flex-start !important; padding: 18px 16px !important; }
+    .cta-wrap .stButton > button,
+    .cta-wrap [data-testid="baseButton-primary"] {
+        background: linear-gradient(135deg,#4338ca,#7c3aed) !important;
+        border: none !important; color: #fff !important;
+        font-weight: 600 !important; letter-spacing: 0.02em !important;
+        animation: cta-pulse 2.8s ease-in-out infinite !important;
+    }
+    .cta-wrap .stButton > button:hover { background: linear-gradient(135deg,#4f46e5,#8b5cf6) !important; transform: translateY(-1px) !important; }
 
-    /* ── Sidebar section header label ───────────────────────── */
-    .sidebar-label {
-        font-size: 10px !important;
-        font-weight: 700 !important;
-        letter-spacing: 0.1em !important;
-        text-transform: uppercase !important;
-        opacity: 0.4 !important;
-        margin: 0 0 6px 2px !important;
-        padding: 0 !important;
-        line-height: 1 !important;
+    /* ── Keyframes ───────────────────────────────────────────────────────── */
+    @keyframes slide-up-fade { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes border-beam-spin { to { --beam-angle: 360deg; } }
+    @keyframes cta-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.5), 0 4px 16px rgba(67,56,202,0.35); }
+        50%       { box-shadow: 0 0 0 10px rgba(99,102,241,0.0), 0 6px 28px rgba(124,58,237,0.55); }
     }
+    @property --beam-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
 
-    /* Remove default iframe border for the fluid dropdown component */
-    section[data-testid="stSidebar"] iframe {
-        border: none !important;
-    }
+    /* Staggered suggestion entry */
+    .suggestion-btn { animation: slide-up-fade 0.45s cubic-bezier(0.16,1,0.3,1) backwards !important; }
+    .suggestion-btn-0 { animation-delay: 0.08s !important; }
+    .suggestion-btn-1 { animation-delay: 0.14s !important; }
+    .suggestion-btn-2 { animation-delay: 0.20s !important; }
 
-    /* Style sidebar text input to match the fluid dropdown white aesthetic */
-    section[data-testid="stSidebar"] .stTextInput input {
-        background: rgba(255, 255, 255, 0.92) !important;
-        border: 1px solid rgba(0, 0, 0, 0.1) !important;
-        border-radius: 12px !important;
-        color: rgba(20, 20, 45, 0.85) !important;
-        font-size: 12.5px !important;
-        font-weight: 500 !important;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07) !important;
-        transition: border-color 0.15s, background 0.15s, box-shadow 0.15s !important;
+    /* Border beam on welcome card */
+    .welcome-box::after {
+        content: '' !important; position: absolute !important; inset: 0 !important;
+        border-radius: 18px !important; padding: 1px !important;
+        background: conic-gradient(from var(--beam-angle), transparent 0deg, transparent 310deg, rgba(124,58,237,0.35) 338deg, rgba(165,180,252,0.85) 350deg, rgba(99,102,241,0.35) 360deg) !important;
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0) !important;
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0) !important;
+        -webkit-mask-composite: destination-out !important; mask-composite: exclude !important;
+        animation: border-beam-spin 5s linear infinite !important;
+        pointer-events: none !important; z-index: 0 !important;
     }
-    section[data-testid="stSidebar"] .stTextInput input:hover {
-        border-color: rgba(102, 126, 234, 0.4) !important;
-        background: #ffffff !important;
-        box-shadow: 0 2px 10px rgba(102, 126, 234, 0.12) !important;
-    }
-    section[data-testid="stSidebar"] .stTextInput input:focus {
-        border-color: rgba(102, 126, 234, 0.55) !important;
-        background: #ffffff !important;
-        box-shadow: 0 0 0 1px rgba(102, 126, 234, 0.2), 0 4px 16px rgba(102, 126, 234, 0.1) !important;
-    }
-</style>
-""", unsafe_allow_html=True)
+    """
 
-# --- Sidebar ---
+    # Encode CSS as a safe JS string literal, then inject via components.html
+    _css_js = json.dumps(_CSS)
+
+    components.html(
+        f"""
+<script>
+(function () {{
+  var pd = window.parent.document;
+
+  // Inject aurora background div (once per page load)
+  if (!pd.getElementById('aurora-bg-root')) {{
+    var bg = pd.createElement('div');
+    bg.id = 'aurora-bg-root';
+    bg.innerHTML =
+      '<div class="aurora-bg">' +
+        '<div class="aurora-orb aurora-orb-1"></div>' +
+        '<div class="aurora-orb aurora-orb-2"></div>' +
+        '<div class="aurora-orb aurora-orb-3"></div>' +
+      '</div>';
+    pd.body.prepend(bg);
+  }}
+
+  // Inject or replace the stylesheet in <head>
+  var existing = pd.getElementById('ft-style');
+  if (existing) existing.remove();
+  var s = pd.createElement('style');
+  s.id = 'ft-style';
+  s.textContent = {_css_js};
+  pd.head.appendChild(s);
+}})();
+</script>
+""",
+        height=0,
+    )
+
+
+# Apply the futuristic theme immediately after page config
+inject_futuristic_theme()
+
+
 st.sidebar.markdown("## ⚙️ Settings")
 
 st.sidebar.markdown('<p class="sidebar-label">Practice Mode</p>', unsafe_allow_html=True)
@@ -500,7 +700,7 @@ if mode == "Mock Interviewer (Role-Play)":
 else:
     persona = "😐 Neutral"
 
-with st.sidebar.expander("📄 Job Description (optional)", expanded=False):
+with st.sidebar.expander("Job Description (optional)", expanded=False):
     job_description = st.text_area(
         "Paste the job posting",
         value="",
@@ -516,7 +716,7 @@ with st.sidebar.expander("📄 Job Description (optional)", expanded=False):
             st.error("⚠️ Job description contains disallowed content.")
             job_description = ""
 
-with st.sidebar.expander("ℹ️ About this mode", expanded=False):
+with st.sidebar.expander("About this mode", expanded=False):
     st.markdown(PROMPTS[mode]["description"])
 
 # ── Response Style ────────────────────────────────────────────
@@ -543,7 +743,7 @@ style_preset = st.session_state.style_preset
 is_custom = style_preset == "⚙️ Custom"
 _preset = STYLE_PRESETS[style_preset]
 
-with st.sidebar.expander("⚙️ Advanced Settings", expanded=False):
+with st.sidebar.expander("Advanced Settings", expanded=False):
     temperature = st.slider(
         "🌡️ Temperature",
         min_value=0.0,
@@ -755,19 +955,40 @@ if not st.session_state.messages:
     # Primary CTA
     col_l, col_cta, col_r = st.columns([1, 2, 1])
     with col_cta:
+        st.markdown('<div class="cta-wrap">', unsafe_allow_html=True)
         if st.button(cta_label, width="stretch", type="primary", key="cta_btn"):
             st.session_state.pending_suggestion = first_suggestion
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown("##### Or choose a specific topic:")
+    st.markdown('<p class="topics-label">Choose a specific topic</p>', unsafe_allow_html=True)
 
-    cols = st.columns(3)
-    for i, suggestion in enumerate(active_suggestions):
-        with cols[i]:
-            st.markdown('<div class="suggestion-btn">', unsafe_allow_html=True)
-            if st.button(suggestion["text"], key=f"suggestion_{i}", width="stretch"):
-                st.session_state.pending_suggestion = suggestion["text"]
+    # Bento grid: card 0 is wide+tall, cards 1–2 stack in the narrower column
+    if len(active_suggestions) >= 3:
+        col_l, col_r = st.columns([3, 2])
+        with col_l:
+            s = active_suggestions[0]
+            st.markdown('<div class="suggestion-btn suggestion-btn-0 bento-lg">', unsafe_allow_html=True)
+            if st.button(s["text"], key="suggestion_0", width="stretch"):
+                st.session_state.pending_suggestion = s["text"]
             st.markdown('</div>', unsafe_allow_html=True)
-            st.caption(suggestion["sub"])
+            st.caption(s["sub"])
+        with col_r:
+            for i in range(1, 3):
+                s = active_suggestions[i]
+                st.markdown(f'<div class="suggestion-btn suggestion-btn-{i}">', unsafe_allow_html=True)
+                if st.button(s["text"], key=f"suggestion_{i}", width="stretch"):
+                    st.session_state.pending_suggestion = s["text"]
+                st.markdown('</div>', unsafe_allow_html=True)
+                st.caption(s["sub"])
+    else:
+        cols = st.columns(max(len(active_suggestions), 1))
+        for i, s in enumerate(active_suggestions):
+            with cols[i]:
+                st.markdown(f'<div class="suggestion-btn suggestion-btn-{i}">', unsafe_allow_html=True)
+                if st.button(s["text"], key=f"suggestion_{i}", width="stretch"):
+                    st.session_state.pending_suggestion = s["text"]
+                st.markdown('</div>', unsafe_allow_html=True)
+                st.caption(s["sub"])
 
 # Display chat history
 for msg in st.session_state.messages:
@@ -866,3 +1087,56 @@ if user_input:
                     st.session_state.total_output_tokens += response.usage.completion_tokens
             except Exception as e:
                 st.error(f"Error calling OpenAI API: {e}")
+
+# --- Typewriter placeholder for Command Bar ---
+components.html("""
+<script>
+(function () {
+  var PHRASES = [
+    "Ask any interview question\u2026",
+    "What are the SOLID principles?",
+    "Design a URL shortening service\u2026",
+    "Tell me about a time you led a project\u2026",
+    "How does garbage collection work?",
+    "Walk me through a system design\u2026",
+  ];
+  var pi = 0, ci = 0, deleting = false;
+
+  function getTA() {
+    return window.parent.document.querySelector(
+      'div[data-testid="stChatInput"] textarea'
+    );
+  }
+
+  function tick() {
+    var el = getTA();
+    if (!el) { setTimeout(tick, 500); return; }
+    if (el === window.parent.document.activeElement) { setTimeout(tick, 300); return; }
+
+    var phrase = PHRASES[pi];
+    if (!deleting) {
+      ci++;
+      el.setAttribute("placeholder", phrase.slice(0, ci));
+      if (ci >= phrase.length) { deleting = true; setTimeout(tick, 2200); }
+      else { setTimeout(tick, 65); }
+    } else {
+      ci--;
+      el.setAttribute("placeholder", phrase.slice(0, ci));
+      if (ci <= 0) {
+        deleting = false;
+        pi = (pi + 1) % PHRASES.length;
+        setTimeout(tick, 400);
+      } else { setTimeout(tick, 32); }
+    }
+  }
+
+  // Start once the textarea appears in the parent DOM
+  var obs = new MutationObserver(function () {
+    if (getTA()) { obs.disconnect(); tick(); }
+  });
+  obs.observe(window.parent.document.body, { childList: true, subtree: true });
+  // Also try immediately in case it's already rendered
+  if (getTA()) { obs.disconnect(); tick(); }
+})();
+</script>
+""", height=0)
