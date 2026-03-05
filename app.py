@@ -557,7 +557,57 @@ small {
     padding: 0 !important;
 }
 
+/* ── Hero Section ────────────────────────────────────────────────────── */
+.hero-container {
+    display: flex !important; flex-direction: column !important;
+    align-items: center !important; text-align: center !important;
+    margin-bottom: 2.5rem !important; margin-top: 1rem !important;
+    animation: fade-in-down 0.6s ease-out !important;
+}
+.hero-badge {
+    display: inline-flex !important; align-items: center !important;
+    gap: 8px !important; padding: 6px 16px !important;
+    border-radius: 999px !important;
+    background: rgba(124, 58, 237, 0.1) !important;
+    border: 1px solid rgba(124, 58, 237, 0.3) !important;
+    color: #d8b4fe !important; font-size: 0.75rem !important;
+    font-weight: 600 !important; letter-spacing: 0.05em !important;
+    text-transform: uppercase !important; margin-bottom: 1rem !important;
+    box-shadow: 0 0 12px rgba(124, 58, 237, 0.15) !important;
+}
+.hero-badge-dot {
+    width: 6px !important; height: 6px !important;
+    background-color: #a855f7 !important; border-radius: 50% !important;
+    box-shadow: 0 0 8px #a855f7 !important;
+    animation: pulse-dot 2s infinite !important;
+    display: inline-block !important; flex-shrink: 0 !important;
+}
+.hero-title {
+    font-size: 3.2rem !important; font-weight: 800 !important;
+    letter-spacing: -0.03em !important; color: #ffffff !important;
+    margin: 0 !important; line-height: 1.1 !important;
+}
+.hero-highlight {
+    background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important; color: transparent !important;
+}
+.hero-subtitle {
+    color: #a1a1aa !important; font-size: 1.1rem !important;
+    margin-top: 1rem !important; max-width: 500px !important;
+    font-weight: 400 !important; line-height: 1.5 !important;
+}
+
 /* ── Keyframes ───────────────────────────────────────────────────────── */
+@keyframes fade-in-down {
+    0%   { opacity: 0; transform: translateY(-15px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.4; transform: scale(0.8); }
+}
 @keyframes slide-up-fade {
     from { opacity: 0; transform: translateY(14px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -935,12 +985,23 @@ col1, col2, col3 = st.columns([2, 5, 2])
 with col2:
     if user_msgs > 0:
         st.markdown(
-            f'<h1 style="text-align:center;">Interview Practice'
-            f'<span class="q-counter">Question {user_msgs}</span></h1>',
+            f'<div class="hero-container">'
+            f'<div class="hero-badge"><span class="hero-badge-dot"></span>AI-Powered Coaching</div>'
+            f'<h1 class="hero-title">Interview <span class="hero-highlight">Companion</span>'
+            f'<span class="q-counter">Question {user_msgs}</span></h1>'
+            f'<p class="hero-subtitle">Master your next role with dynamic, real-time feedback.</p>'
+            f'</div>',
             unsafe_allow_html=True,
         )
     else:
-        st.markdown('<h1 style="text-align:center;">Interview Practice</h1>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="hero-container">'
+            '<div class="hero-badge"><span class="hero-badge-dot"></span>AI-Powered Coaching</div>'
+            '<h1 class="hero-title">Interview <span class="hero-highlight">Companion</span></h1>'
+            '<p class="hero-subtitle">Master your next role with dynamic, real-time feedback.</p>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
 
 # --- Empty State: Welcome Box + CTA ---
 if not st.session_state.messages:
