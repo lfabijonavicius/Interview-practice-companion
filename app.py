@@ -667,31 +667,61 @@ small {
 }
 
 /* ── Voice input ─────────────────────────────────────────────────────── */
-/* Center the column holding the mic iframe */
-div[data-testid="column"]:has(iframe) {
+/* Center only the column that holds the mic iframe */
+div[data-testid="column"]:has(iframe[title*="streamlit_mic_recorder"]) {
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
-    margin-bottom: -15px !important;
-    z-index: 10 !important;
+    margin-bottom: 10px !important;
 }
-/* Premium pill styling on the iframe itself */
+/* Tight transparent wrap — hides the double-box effect */
 iframe[title="streamlit_mic_recorder"],
 iframe[title*="streamlit_mic_recorder"],
 iframe[title*="speech_to_text"] {
-    border-radius: 30px !important;
-    background: rgba(24, 24, 27, 0.6) !important;
-    border: 1px solid rgba(124, 58, 237, 0.3) !important;
-    box-shadow: 0 4px 20px rgba(124, 58, 237, 0.15) !important;
-    height: 45px !important;
-    transition: all 0.3s ease !important;
+    width: 160px !important;
+    height: 50px !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
 }
-iframe[title="streamlit_mic_recorder"]:hover,
-iframe[title*="streamlit_mic_recorder"]:hover,
-iframe[title*="speech_to_text"]:hover {
-    border-color: rgba(124, 58, 237, 0.8) !important;
-    box-shadow: 0 4px 25px rgba(124, 58, 237, 0.3) !important;
-    transform: translateY(-1px) !important;
+
+/* ── AI Thinking Soundwave ───────────────────────────────────────────── */
+.ai-thinking-container {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 16px 24px !important;
+    background: rgba(24, 24, 27, 0.4) !important;
+    border: 1px solid rgba(124, 58, 237, 0.2) !important;
+    border-radius: 12px !important;
+    width: fit-content !important;
+    margin-bottom: 1.5rem !important;
+    backdrop-filter: blur(12px) !important;
+}
+.ai-thinking-text {
+    color: #a855f7 !important;
+    font-size: 0.9rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.05em !important;
+}
+.soundwave {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    height: 20px !important;
+}
+.soundwave .bar {
+    width: 4px !important;
+    background: #a855f7 !important;
+    border-radius: 4px !important;
+    animation: wave 1s ease-in-out infinite !important;
+}
+.soundwave .bar:nth-child(1) { height: 8px !important;  animation-delay: -0.4s !important; }
+.soundwave .bar:nth-child(2) { height: 16px !important; animation-delay: -0.2s !important; }
+.soundwave .bar:nth-child(3) { height: 12px !important; animation-delay:  0.0s !important; }
+@keyframes wave {
+    0%, 100% { transform: scaleY(0.5); opacity: 0.5; }
+    50%       { transform: scaleY(1);   opacity: 1;   }
 }
 
 /* ── Keyframes ───────────────────────────────────────────────────────── */
@@ -1300,28 +1330,39 @@ if user_input:
 
     # Call OpenAI API
     with st.chat_message("assistant"):
-        with st.spinner("Thinking..."):
-            try:
-                response = client.chat.completions.create(
-                    model=model,
-                    messages=api_messages,
-                    temperature=temperature,
-                    top_p=top_p,
-                    max_tokens=max_tokens,
-                    frequency_penalty=frequency_penalty,
-                    presence_penalty=presence_penalty,
-                )
-                assistant_message = response.choices[0].message.content
-                st.markdown(assistant_message)
-                st.session_state.messages.append(
-                    {"role": "assistant", "content": assistant_message}
-                )
-                # Track token usage for cost display
-                if response.usage:
-                    st.session_state.total_input_tokens += response.usage.prompt_tokens
-                    st.session_state.total_output_tokens += response.usage.completion_tokens
-            except Exception as e:
-                st.error(f"Error calling OpenAI API: {e}")
+        thinking_placeholder = st.empty()
+        thinking_placeholder.markdown(
+            '<div class="ai-thinking-container">'
+            '<div class="soundwave">'
+            '<div class="bar"></div><div class="bar"></div><div class="bar"></div>'
+            '</div>'
+            '<span class="ai-thinking-text">Thinking…</span>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=api_messages,
+                temperature=temperature,
+                top_p=top_p,
+                max_tokens=max_tokens,
+                frequency_penalty=frequency_penalty,
+                presence_penalty=presence_penalty,
+            )
+            thinking_placeholder.empty()
+            assistant_message = response.choices[0].message.content
+            st.markdown(assistant_message)
+            st.session_state.messages.append(
+                {"role": "assistant", "content": assistant_message}
+            )
+            # Track token usage for cost display
+            if response.usage:
+                st.session_state.total_input_tokens += response.usage.prompt_tokens
+                st.session_state.total_output_tokens += response.usage.completion_tokens
+        except Exception as e:
+            thinking_placeholder.empty()
+            st.error(f"Error calling OpenAI API: {e}")
 
 # --- Typewriter placeholder for Command Bar ---
 components.html("""
