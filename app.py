@@ -674,12 +674,12 @@ div[data-testid="column"]:has(iframe[title*="streamlit_mic_recorder"]) {
     align-items: center !important;
     margin-bottom: 10px !important;
 }
-/* Transparent window — inner button styled via JS piercer */
+/* Transparent 45×45 window — inner button styled via JS piercer */
 iframe[title="streamlit_mic_recorder"],
 iframe[title*="streamlit_mic_recorder"],
 iframe[title*="speech_to_text"] {
-    width: 150px !important;
-    height: 50px !important;
+    width: 45px !important;
+    height: 45px !important;
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;
@@ -1265,8 +1265,8 @@ if st.session_state.messages:
 _, _mic_c, __ = st.columns([1, 1, 1])
 with _mic_c:
     audio_data = mic_recorder(
-        start_prompt="Tap to Speak",
-        stop_prompt="⏹  Stop Recording",
+        start_prompt="🎙️",
+        stop_prompt="⏹️",
         just_once=True,
         key="mic_recorder",
     )
@@ -1433,26 +1433,23 @@ components.html("""
     "  display: inline-flex;",
     "  align-items: center;",
     "  justify-content: center;",
-    "  gap: 8px;",
-    "  padding: 10px 20px;",
-    "  border-radius: 99px;",
-    "  font-family: 'Inter', -apple-system, sans-serif;",
-    "  font-size: 0.85rem;",
-    "  font-weight: 600;",
-    "  letter-spacing: 0.04em;",
+    "  width: 38px;",
+    "  height: 38px;",
+    "  border-radius: 50%;",
+    "  padding: 0;",
+    "  margin: 0;",
+    "  font-size: 1.1rem;",
     "  color: #e9d5ff;",
     "  background: rgba(124, 58, 237, 0.15);",
     "  border: 1px solid rgba(124, 58, 237, 0.4);",
-    "  box-shadow: 0 0 14px rgba(124, 58, 237, 0.18);",
+    "  box-shadow: 0 0 12px rgba(124, 58, 237, 0.2);",
     "  transition: all 0.2s ease;",
-    "  white-space: nowrap;",
-    "  min-width: 130px;",
     "}",
     "button:hover {",
-    "  background: rgba(124, 58, 237, 0.28);",
+    "  background: rgba(124, 58, 237, 0.3);",
     "  border-color: rgba(168, 85, 247, 0.7);",
-    "  box-shadow: 0 0 22px rgba(124, 58, 237, 0.35);",
-    "  transform: translateY(-1px);",
+    "  box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);",
+    "  transform: scale(1.08);",
     "}",
     "button:focus { outline: none !important; box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.5); }",
     "button.recording {",
@@ -1477,21 +1474,45 @@ components.html("""
       try {
         var fdoc = fr.contentDocument || fr.contentWindow.document;
         if (!fdoc) return;
-        // Inject once — skip if already injected
-        if (fdoc.getElementById('mic-pierce-style')) return;
-        var s = fdoc.createElement('style');
-        s.id = 'mic-pierce-style';
-        s.textContent = MIC_CSS;
-        (fdoc.head || fdoc.documentElement).appendChild(s);
-        // Apply .recording class while the button label indicates active recording
-        fdoc.addEventListener('click', function () {
-          setTimeout(function () {
-            var btn = fdoc.querySelector('button');
-            if (!btn) return;
-            var isRec = btn.textContent.toLowerCase().includes('stop');
-            btn.classList.toggle('recording', isRec);
-          }, 80);
-        });
+
+        // ── Inject inner styles once ──────────────────────────────────
+        if (!fdoc.getElementById('mic-pierce-style')) {
+          var s = fdoc.createElement('style');
+          s.id = 'mic-pierce-style';
+          s.textContent = MIC_CSS;
+          (fdoc.head || fdoc.documentElement).appendChild(s);
+          // Toggle .recording on click based on button label
+          fdoc.addEventListener('click', function () {
+            setTimeout(function () {
+              var btn = fdoc.querySelector('button');
+              if (!btn) return;
+              btn.classList.toggle('recording',
+                btn.textContent.includes('⏹') || btn.textContent.toLowerCase().includes('stop'));
+            }, 80);
+          });
+        }
+
+        // ── Float the mic container inside the chat input ─────────────
+        if (!fr.dataset.micFloated) {
+          var chatInputDiv = pd.querySelector('[data-testid="stChatInput"] > div');
+          var textarea     = pd.querySelector('[data-testid="stChatInput"] textarea');
+          var micContainer = fr.closest('div[data-testid="stElementContainer"]');
+          if (chatInputDiv && micContainer && textarea) {
+            // Make the vertical block the positioning context
+            var parentBlock = chatInputDiv.closest('[data-testid="stVerticalBlock"]');
+            if (parentBlock) { parentBlock.style.position = 'relative'; }
+            // Float the mic over the left edge of the chat input
+            micContainer.style.position = 'absolute';
+            micContainer.style.left     = '20px';
+            micContainer.style.bottom   = '22px';
+            micContainer.style.zIndex   = '1000';
+            micContainer.style.width    = '45px';
+            // Indent the textarea so text doesn't type under the icon
+            textarea.style.paddingLeft  = '55px';
+            fr.dataset.micFloated = '1';
+          }
+        }
+
       } catch (e) { /* cross-origin guard */ }
     });
   }
