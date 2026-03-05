@@ -4,7 +4,9 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from pathlib import Path
 import os
+import io
 import json
+from streamlit_mic_recorder import mic_recorder
 
 from prompts import PROMPTS
 
@@ -29,6 +31,21 @@ def _is_injection(text: str) -> bool:
     """Return True if text contains a known prompt injection pattern."""
     lower = text.lower()
     return any(p in lower for p in _INJECTION_PATTERNS)
+
+
+def _transcribe_audio(openai_client, audio_bytes: bytes) -> str:
+    """Transcribe audio bytes via OpenAI Whisper. Returns the transcript or ''."""
+    buf = io.BytesIO(audio_bytes)
+    buf.name = "recording.wav"
+    try:
+        result = openai_client.audio.transcriptions.create(
+            model="whisper-1",
+            file=buf,
+        )
+        return result.text.strip()
+    except Exception as e:
+        st.error(f"⚠️ Transcription failed: {e}")
+        return ""
 
 MODEL_OPTIONS = ["gpt-4o-mini", "gpt-4o", "gpt-4.1-nano", "gpt-4.1-mini", "gpt-4.1"]
 
@@ -649,6 +666,21 @@ small {
     font-weight: 400 !important; line-height: 1.5 !important;
 }
 
+/* ── Voice input ─────────────────────────────────────────────────────── */
+.mic-wrap {
+    display: flex !important;
+    justify-content: center !important;
+    margin-bottom: 0.75rem !important;
+}
+/* Purple glow border around the mic component iframe */
+.mic-wrap [data-testid="stCustomComponentV1"],
+.mic-wrap iframe {
+    border-radius: 12px !important;
+    border: 1px solid rgba(124, 58, 237, 0.3) !important;
+    box-shadow: 0 0 16px rgba(124, 58, 237, 0.12) !important;
+    overflow: hidden !important;
+}
+
 /* ── Keyframes ───────────────────────────────────────────────────────── */
 @keyframes fade-in-down {
     0%   { opacity: 0; transform: translateY(-15px); }
@@ -1004,6 +1036,8 @@ if "total_output_tokens" not in st.session_state:
     st.session_state.total_output_tokens = 0
 if "pending_suggestion" not in st.session_state:
     st.session_state.pending_suggestion = None
+if "last_mic_id" not in st.session_state:
+    st.session_state.last_mic_id = None
 if "current_persona" not in st.session_state:
     st.session_state.current_persona = persona
 if "interviewer_avatar_url" not in st.session_state:
@@ -1183,7 +1217,25 @@ if st.session_state.messages:
         help="Estimated cost based on current OpenAI pricing. Prices may change.",
     )
 
-# --- User Input ---
+# --- Voice Input ---
+st.markdown('<div class="mic-wrap">', unsafe_allow_html=True)
+audio_data = mic_recorder(
+    start_prompt="🎤  Speak answer",
+    stop_prompt="⏹  Stop recording",
+    just_once=True,
+    key="mic_recorder",
+)
+st.markdown('</div>', unsafe_allow_html=True)
+
+voice_input = None
+if audio_data and audio_data.get("id") != st.session_state.last_mic_id:
+    st.session_state.last_mic_id = audio_data["id"]
+    with st.spinner("🎙️ Transcribing…"):
+        voice_input = _transcribe_audio(client, audio_data["bytes"])
+    if voice_input:
+        st.toast(f'Transcribed: "{voice_input[:80]}"')
+
+# --- Text Input ---
 placeholder = MODE_PLACEHOLDERS.get(mode, "Type your question or answer here...")
 user_input = st.chat_input(placeholder)
 
@@ -1191,6 +1243,10 @@ user_input = st.chat_input(placeholder)
 if st.session_state.pending_suggestion:
     user_input = st.session_state.pending_suggestion
     st.session_state.pending_suggestion = None
+
+# Voice takes priority if both fire on the same rerun
+if voice_input:
+    user_input = voice_input
 
 if user_input:
     # Security: input length limit
