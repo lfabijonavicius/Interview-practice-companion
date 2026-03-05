@@ -674,16 +674,15 @@ div[data-testid="column"]:has(iframe[title*="streamlit_mic_recorder"]) {
     align-items: center !important;
     margin-bottom: 10px !important;
 }
-/* Transparent 45×45 window — inner button styled via JS piercer */
-iframe[title="streamlit_mic_recorder"],
-iframe[title*="streamlit_mic_recorder"],
-iframe[title*="speech_to_text"] {
-    width: 45px !important;
-    height: 45px !important;
+/* Transparent 44×44 window — inner button styled via JS piercer */
+iframe[title*="streamlit_mic_recorder"] {
+    width: 44px !important;
+    height: 44px !important;
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;
     outline: none !important;
+    z-index: 9999 !important;
 }
 
 /* ── AI Thinking Soundwave ───────────────────────────────────────────── */
@@ -1262,14 +1261,12 @@ if st.session_state.messages:
     )
 
 # --- Voice Input ---
-_, _mic_c, __ = st.columns([1, 1, 1])
-with _mic_c:
-    audio_data = mic_recorder(
-        start_prompt="🎙️",
-        stop_prompt="⏹️",
-        just_once=True,
-        key="mic_recorder",
-    )
+audio_data = mic_recorder(
+    start_prompt=" ",
+    stop_prompt=" ",
+    just_once=True,
+    key="mic_recorder",
+)
 
 voice_input = None
 if audio_data and audio_data.get("id") != st.session_state.last_mic_id:
@@ -1418,118 +1415,87 @@ components.html("""
 </script>
 """, height=0)
 
-# --- Mic button iframe piercer ---
-# Finds the mic recorder iframe in the parent DOM and injects a <style> tag
-# directly into its document so we can reach the native button.
+# --- Mic SVG icon injector + chat input floater ---
 components.html("""
 <script>
 (function () {
-  var MIC_CSS = [
-    "* { box-sizing: border-box; margin: 0; padding: 0; }",
-    "body { background: transparent !important; display: flex; justify-content: center; align-items: center; height: 100%; }",
-    "button {",
-    "  all: unset;",
-    "  cursor: pointer;",
-    "  display: inline-flex;",
-    "  align-items: center;",
-    "  justify-content: center;",
-    "  width: 38px;",
-    "  height: 38px;",
-    "  border-radius: 50%;",
-    "  padding: 0;",
-    "  margin: 0;",
-    "  font-size: 1.1rem;",
-    "  color: #e9d5ff;",
-    "  background: rgba(124, 58, 237, 0.15);",
-    "  border: 1px solid rgba(124, 58, 237, 0.4);",
-    "  box-shadow: 0 0 12px rgba(124, 58, 237, 0.2);",
-    "  transition: all 0.2s ease;",
-    "}",
-    "button:hover {",
-    "  background: rgba(124, 58, 237, 0.3);",
-    "  border-color: rgba(168, 85, 247, 0.7);",
-    "  box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);",
-    "  transform: scale(1.08);",
-    "}",
-    "button:focus { outline: none !important; box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.5); }",
-    "button.recording {",
-    "  background: rgba(239, 68, 68, 0.15);",
-    "  border-color: rgba(239, 68, 68, 0.5);",
-    "  color: #fca5a5;",
-    "  box-shadow: 0 0 14px rgba(239, 68, 68, 0.2);",
-    "  animation: rec-pulse 1.4s ease-in-out infinite;",
-    "}",
-    "@keyframes rec-pulse {",
-    "  0%, 100% { box-shadow: 0 0 14px rgba(239,68,68,0.2); }",
-    "  50%       { box-shadow: 0 0 28px rgba(239,68,68,0.45); }",
-    "}"
-  ].join("\\n");
+  var SVG_MIC  = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23a855f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z'%3E%3C/path%3E%3Cpath d='M19 10v2a7 7 0 0 1-14 0v-2'%3E%3C/path%3E%3Cline x1='12' x2='12' y1='19' y2='22'%3E%3C/line%3E%3C/svg%3E";
+  var SVG_STOP = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23ef4444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='6' y='6' width='12' height='12' rx='2' ry='2'%3E%3C/rect%3E%3C/svg%3E";
 
-  function styleMicIframe() {
+  var INNER_CSS = `
+    body { margin: 0 !important; background: transparent !important; }
+    button {
+      width: 40px !important; height: 40px !important;
+      border-radius: 50% !important;
+      background-color: transparent !important;
+      background-image: url("${SVG_MIC}") !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      border: none !important;
+      color: transparent !important;
+      box-shadow: none !important;
+      cursor: pointer !important;
+      outline: none !important;
+      transition: all 0.2s ease !important;
+      font-size: 0 !important;
+    }
+    button:hover {
+      background-color: rgba(168, 85, 247, 0.1) !important;
+      transform: scale(1.08) !important;
+    }
+    button.recording {
+      background-image: url("${SVG_STOP}") !important;
+      background-color: rgba(239, 68, 68, 0.1) !important;
+      animation: rec-pulse 1.4s ease-in-out infinite !important;
+    }
+    @keyframes rec-pulse {
+      0%, 100% { box-shadow: 0 0 0 2px rgba(239,68,68,0.3); }
+      50%       { box-shadow: 0 0 0 4px rgba(239,68,68,0.6); }
+    }
+  `;
+
+  function styleMicAndFloat() {
     var pd = window.parent.document;
-    var iframes = pd.querySelectorAll(
-      'iframe[title="streamlit_mic_recorder"], iframe[title*="streamlit_mic_recorder"], iframe[title*="speech_to_text"]'
-    );
-    iframes.forEach(function (fr) {
+    var iframes = pd.querySelectorAll('iframe[title*="streamlit_mic_recorder"]');
+    var chatInput = pd.querySelector('[data-testid="stChatInput"]');
+
+    iframes.forEach(function (iframe) {
+      // ── Float container into the chat input ──────────────────────────
+      var micContainer = iframe.closest('div[data-testid="stElementContainer"]');
+      if (chatInput && micContainer && !iframe.dataset.floated) {
+        micContainer.style.position = 'absolute';
+        micContainer.style.left     = '14px';
+        micContainer.style.bottom   = '18px';
+        micContainer.style.width    = '44px';
+        micContainer.style.height   = '44px';
+        micContainer.style.zIndex   = '9999';
+        var textarea = chatInput.querySelector('textarea');
+        if (textarea) { textarea.style.paddingLeft = '50px'; }
+        iframe.dataset.floated = '1';
+      }
+
+      // ── Inject SVG styles into iframe document ───────────────────────
       try {
-        var fdoc = fr.contentDocument || fr.contentWindow.document;
-        if (!fdoc) return;
-
-        // ── Inject inner styles once ──────────────────────────────────
-        if (!fdoc.getElementById('mic-pierce-style')) {
-          var s = fdoc.createElement('style');
-          s.id = 'mic-pierce-style';
-          s.textContent = MIC_CSS;
-          (fdoc.head || fdoc.documentElement).appendChild(s);
-          // Toggle .recording on click based on button label
-          fdoc.addEventListener('click', function () {
-            setTimeout(function () {
-              var btn = fdoc.querySelector('button');
-              if (!btn) return;
-              btn.classList.toggle('recording',
-                btn.textContent.includes('⏹') || btn.textContent.toLowerCase().includes('stop'));
-            }, 80);
-          });
-        }
-
-        // ── Float the mic container inside the chat input ─────────────
-        if (!fr.dataset.micFloated) {
-          var chatInputDiv = pd.querySelector('[data-testid="stChatInput"] > div');
-          var textarea     = pd.querySelector('[data-testid="stChatInput"] textarea');
-          var micContainer = fr.closest('div[data-testid="stElementContainer"]');
-          if (chatInputDiv && micContainer && textarea) {
-            // Make the vertical block the positioning context
-            var parentBlock = chatInputDiv.closest('[data-testid="stVerticalBlock"]');
-            if (parentBlock) { parentBlock.style.position = 'relative'; }
-            // Float the mic over the left edge of the chat input
-            micContainer.style.position = 'absolute';
-            micContainer.style.left     = '20px';
-            micContainer.style.bottom   = '22px';
-            micContainer.style.zIndex   = '1000';
-            micContainer.style.width    = '45px';
-            // Indent the textarea so text doesn't type under the icon
-            textarea.style.paddingLeft  = '55px';
-            fr.dataset.micFloated = '1';
-          }
-        }
-
+        var idoc = iframe.contentDocument || iframe.contentWindow.document;
+        if (!idoc || idoc.getElementById('svg-mic-style')) return;
+        var s = idoc.createElement('style');
+        s.id = 'svg-mic-style';
+        s.innerHTML = INNER_CSS;
+        (idoc.head || idoc.documentElement).appendChild(s);
+        // Toggle .recording class based on which SVG should show
+        idoc.addEventListener('click', function () {
+          setTimeout(function () {
+            var btn = idoc.querySelector('button');
+            if (!btn) return;
+            // After click: if it was idle it's now recording, vice versa
+            btn.classList.toggle('recording');
+          }, 80);
+        });
       } catch (e) { /* cross-origin guard */ }
     });
   }
 
-  // Run now and keep retrying until the iframe is mounted
-  styleMicIframe();
-  var timer = setInterval(function () {
-    var pd = window.parent.document;
-    var fr = pd.querySelector('iframe[title*="streamlit_mic_recorder"], iframe[title*="speech_to_text"]');
-    if (fr) {
-      try {
-        var fdoc = fr.contentDocument || fr.contentWindow.document;
-        if (fdoc && !fdoc.getElementById('mic-pierce-style')) { styleMicIframe(); }
-        else { clearInterval(timer); }
-      } catch (e) { clearInterval(timer); }
-    }
-  }, 400);
+  setInterval(styleMicAndFloat, 200);
 })();
 </script>
 """, height=0)
