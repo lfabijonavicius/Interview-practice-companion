@@ -283,17 +283,9 @@ def inject_futuristic_theme() -> None:
     _CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-/* ── Dotted Surface on html — uncoverable by any child element ────────── */
-/* Layer 1 (top): vignette — transparent at bottom center, black at top   */
-/* Layer 2 (below): repeating dot grid                                    */
-/* background-color: base black where both layers are transparent         */
+/* ── Base canvas — Three.js WebGL handles the dotted surface visuals ─── */
 html {
     background-color: #000000 !important;
-    background-image:
-        radial-gradient(ellipse 100% 55% at 50% 100%, transparent 15%, #000000 65%),
-        radial-gradient(rgba(255,255,255,0.1) 1px, transparent 0) !important;
-    background-size: 100% 100%, 24px 24px !important;
-    background-attachment: fixed, fixed !important;
 }
 
 /* ── All children transparent so html dot surface shows through ───────── */
@@ -576,8 +568,9 @@ small {
 <script>
 (function () {{
   var pd = window.parent.document;
+  var pw = window.parent;
 
-  // Inject or replace our stylesheet — appended LAST so it wins source-order
+  // ── Stylesheet: always last so !important rules beat emotion CSS ──────
   var existing = pd.getElementById('ft-style');
   if (existing) existing.remove();
   var s = pd.createElement('style');
@@ -585,17 +578,77 @@ small {
   s.textContent = {_css_js};
   pd.head.appendChild(s);
 
-  // MutationObserver: whenever Streamlit (emotion) appends a new style tag,
-  // move ft-style back to last so our !important rules keep winning.
   if (!pd._ftObserver) {{
     pd._ftObserver = new MutationObserver(function () {{
       var ft = pd.getElementById('ft-style');
-      if (ft && pd.head.lastElementChild !== ft) {{
-        pd.head.appendChild(ft);
-      }}
+      if (ft && pd.head.lastElementChild !== ft) pd.head.appendChild(ft);
     }});
     pd._ftObserver.observe(pd.head, {{ childList: true }});
   }}
+
+  // ── Three.js dotted surface — load once per page ──────────────────────
+  if (pd.getElementById('dotted-surface-canvas')) return;
+
+  var sc = pd.createElement('script');
+  sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+  sc.onload = function () {{
+    var T  = pw.THREE;
+    var SEPARATION = 150, AX = 40, AY = 60;
+
+    var scene  = new T.Scene();
+    var camera = new T.PerspectiveCamera(60, pw.innerWidth / pw.innerHeight, 1, 10000);
+    camera.position.set(0, 355, 1220);
+
+    var renderer = new T.WebGLRenderer({{ alpha: true, antialias: true }});
+    renderer.setPixelRatio(pw.devicePixelRatio);
+    renderer.setSize(pw.innerWidth, pw.innerHeight);
+    renderer.setClearColor(0x000000, 0);
+
+    var cvs = renderer.domElement;
+    cvs.id  = 'dotted-surface-canvas';
+    cvs.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;pointer-events:none;';
+    pd.body.prepend(cvs);
+
+    var pos = [], col = [];
+    for (var ix = 0; ix < AX; ix++) {{
+      for (var iy = 0; iy < AY; iy++) {{
+        pos.push(ix * SEPARATION - (AX * SEPARATION) / 2, 0, iy * SEPARATION - (AY * SEPARATION) / 2);
+        col.push(200, 200, 200);
+      }}
+    }}
+
+    var geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('color',    new T.Float32BufferAttribute(col, 3));
+
+    var mat = new T.PointsMaterial({{
+      size: 8, vertexColors: true, transparent: true, opacity: 0.8, sizeAttenuation: true
+    }});
+    scene.add(new T.Points(geo, mat));
+
+    var count = 0;
+    (function animate() {{
+      requestAnimationFrame(animate);
+      var pa = geo.attributes.position.array;
+      var i  = 0;
+      for (var ix = 0; ix < AX; ix++) {{
+        for (var iy = 0; iy < AY; iy++) {{
+          pa[i * 3 + 1] = Math.sin((ix + count) * 0.3) * 50 + Math.sin((iy + count) * 0.5) * 50;
+          i++;
+        }}
+      }}
+      geo.attributes.position.needsUpdate = true;
+      renderer.render(scene, camera);
+      count += 0.1;
+    }})();
+
+    pw.addEventListener('resize', function () {{
+      camera.aspect = pw.innerWidth / pw.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(pw.innerWidth, pw.innerHeight);
+    }});
+  }};
+  pd.head.appendChild(sc);
 }})();
 </script>
 """,
