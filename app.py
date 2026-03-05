@@ -674,15 +674,16 @@ div[data-testid="column"]:has(iframe[title*="streamlit_mic_recorder"]) {
     align-items: center !important;
     margin-bottom: 10px !important;
 }
-/* Tight transparent wrap — hides the double-box effect */
+/* Transparent window — inner button styled via JS piercer */
 iframe[title="streamlit_mic_recorder"],
 iframe[title*="streamlit_mic_recorder"],
 iframe[title*="speech_to_text"] {
-    width: 160px !important;
+    width: 150px !important;
     height: 50px !important;
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;
+    outline: none !important;
 }
 
 /* ── AI Thinking Soundwave ───────────────────────────────────────────── */
@@ -1413,6 +1414,101 @@ components.html("""
   obs.observe(window.parent.document.body, { childList: true, subtree: true });
   // Also try immediately in case it's already rendered
   if (getTA()) { obs.disconnect(); tick(); }
+})();
+</script>
+""", height=0)
+
+# --- Mic button iframe piercer ---
+# Finds the mic recorder iframe in the parent DOM and injects a <style> tag
+# directly into its document so we can reach the native button.
+components.html("""
+<script>
+(function () {
+  var MIC_CSS = [
+    "* { box-sizing: border-box; margin: 0; padding: 0; }",
+    "body { background: transparent !important; display: flex; justify-content: center; align-items: center; height: 100%; }",
+    "button {",
+    "  all: unset;",
+    "  cursor: pointer;",
+    "  display: inline-flex;",
+    "  align-items: center;",
+    "  justify-content: center;",
+    "  gap: 8px;",
+    "  padding: 10px 20px;",
+    "  border-radius: 99px;",
+    "  font-family: 'Inter', -apple-system, sans-serif;",
+    "  font-size: 0.85rem;",
+    "  font-weight: 600;",
+    "  letter-spacing: 0.04em;",
+    "  color: #e9d5ff;",
+    "  background: rgba(124, 58, 237, 0.15);",
+    "  border: 1px solid rgba(124, 58, 237, 0.4);",
+    "  box-shadow: 0 0 14px rgba(124, 58, 237, 0.18);",
+    "  transition: all 0.2s ease;",
+    "  white-space: nowrap;",
+    "  min-width: 130px;",
+    "}",
+    "button:hover {",
+    "  background: rgba(124, 58, 237, 0.28);",
+    "  border-color: rgba(168, 85, 247, 0.7);",
+    "  box-shadow: 0 0 22px rgba(124, 58, 237, 0.35);",
+    "  transform: translateY(-1px);",
+    "}",
+    "button:focus { outline: none !important; box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.5); }",
+    "button.recording {",
+    "  background: rgba(239, 68, 68, 0.15);",
+    "  border-color: rgba(239, 68, 68, 0.5);",
+    "  color: #fca5a5;",
+    "  box-shadow: 0 0 14px rgba(239, 68, 68, 0.2);",
+    "  animation: rec-pulse 1.4s ease-in-out infinite;",
+    "}",
+    "@keyframes rec-pulse {",
+    "  0%, 100% { box-shadow: 0 0 14px rgba(239,68,68,0.2); }",
+    "  50%       { box-shadow: 0 0 28px rgba(239,68,68,0.45); }",
+    "}"
+  ].join("\\n");
+
+  function styleMicIframe() {
+    var pd = window.parent.document;
+    var iframes = pd.querySelectorAll(
+      'iframe[title="streamlit_mic_recorder"], iframe[title*="streamlit_mic_recorder"], iframe[title*="speech_to_text"]'
+    );
+    iframes.forEach(function (fr) {
+      try {
+        var fdoc = fr.contentDocument || fr.contentWindow.document;
+        if (!fdoc) return;
+        // Inject once — skip if already injected
+        if (fdoc.getElementById('mic-pierce-style')) return;
+        var s = fdoc.createElement('style');
+        s.id = 'mic-pierce-style';
+        s.textContent = MIC_CSS;
+        (fdoc.head || fdoc.documentElement).appendChild(s);
+        // Apply .recording class while the button label indicates active recording
+        fdoc.addEventListener('click', function () {
+          setTimeout(function () {
+            var btn = fdoc.querySelector('button');
+            if (!btn) return;
+            var isRec = btn.textContent.toLowerCase().includes('stop');
+            btn.classList.toggle('recording', isRec);
+          }, 80);
+        });
+      } catch (e) { /* cross-origin guard */ }
+    });
+  }
+
+  // Run now and keep retrying until the iframe is mounted
+  styleMicIframe();
+  var timer = setInterval(function () {
+    var pd = window.parent.document;
+    var fr = pd.querySelector('iframe[title*="streamlit_mic_recorder"], iframe[title*="speech_to_text"]');
+    if (fr) {
+      try {
+        var fdoc = fr.contentDocument || fr.contentWindow.document;
+        if (fdoc && !fdoc.getElementById('mic-pierce-style')) { styleMicIframe(); }
+        else { clearInterval(timer); }
+      } catch (e) { clearInterval(timer); }
+    }
+  }, 400);
 })();
 </script>
 """, height=0)
