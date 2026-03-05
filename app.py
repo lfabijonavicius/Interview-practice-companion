@@ -283,26 +283,21 @@ def inject_futuristic_theme() -> None:
     _CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-/* ── Base: pure black canvas ──────────────────────────────────────────── */
-html, body, .stApp, [class*="stApp"] {
+/* ── Dotted Surface on html — uncoverable by any child element ────────── */
+/* Layer 1 (top): vignette — transparent at bottom center, black at top   */
+/* Layer 2 (below): repeating dot grid                                    */
+/* background-color: base black where both layers are transparent         */
+html {
     background-color: #000000 !important;
+    background-image:
+        radial-gradient(ellipse 100% 55% at 50% 100%, transparent 15%, #000000 65%),
+        radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px) !important;
+    background-size: 100% 100%, 24px 24px !important;
+    background-attachment: fixed, fixed !important;
 }
 
-/* ── Dotted Surface: 21st.dev-style floor effect ─────────────────────── */
-/* dots are visible at the bottom, fading to black toward the top         */
-#dot-bg-root {
-    position: fixed !important;
-    inset: 0 !important;
-    z-index: 0 !important;
-    pointer-events: none !important;
-    background-color: #000000 !important;
-    background-image: radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px) !important;
-    background-size: 24px 24px !important;
-    -webkit-mask-image: radial-gradient(ellipse 90% 60% at 50% 100%, black 10%, transparent 70%) !important;
-    mask-image: radial-gradient(ellipse 90% 60% at 50% 100%, black 10%, transparent 70%) !important;
-}
-
-/* ── Transparent containers so dot surface shows through ─────────────── */
+/* ── All children transparent so html dot surface shows through ───────── */
+body, .stApp, [class*="stApp"],
 [data-testid="stAppViewContainer"],
 [data-testid="stAppViewBlockContainer"],
 [data-testid="stMainBlockContainer"],
@@ -582,20 +577,25 @@ small {
 (function () {{
   var pd = window.parent.document;
 
-  // Inject dot-grid background div into body (once per page load)
-  if (!pd.getElementById('dot-bg-root')) {{
-    var bg = pd.createElement('div');
-    bg.id = 'dot-bg-root';
-    pd.body.prepend(bg);
-  }}
-
-  // Replace stylesheet in <head> so it always wins source-order
+  // Inject or replace our stylesheet — appended LAST so it wins source-order
   var existing = pd.getElementById('ft-style');
   if (existing) existing.remove();
   var s = pd.createElement('style');
   s.id = 'ft-style';
   s.textContent = {_css_js};
   pd.head.appendChild(s);
+
+  // MutationObserver: whenever Streamlit (emotion) appends a new style tag,
+  // move ft-style back to last so our !important rules keep winning.
+  if (!pd._ftObserver) {{
+    pd._ftObserver = new MutationObserver(function () {{
+      var ft = pd.getElementById('ft-style');
+      if (ft && pd.head.lastElementChild !== ft) {{
+        pd.head.appendChild(ft);
+      }}
+    }});
+    pd._ftObserver.observe(pd.head, {{ childList: true }});
+  }}
 }})();
 </script>
 """,
