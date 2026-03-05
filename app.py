@@ -259,16 +259,15 @@ def fluid_dropdown(options: list, value: str, key: str = None) -> str:
 
 def inject_futuristic_theme() -> None:
     """
-    Injects the minimalist dotted-surface dark theme.
-    Background: repeating dot grid (radial-gradient) with a radial vignette mask.
-    Injection: st.markdown so the <style> tag and background <div> land in the DOM
-    with !important overrides on every property.
+    Premium AI SaaS aesthetic — Zinc 950 base (#09090b), single purple
+    ambient glow, frosted glass cards, Linear/Vercel-style sidebar.
+    Injected via components.html JS so the <style> tag lands in <head>
+    last and beats Streamlit's emotion CSS-in-JS injections.
     """
-    # ── Runtime dark-mode config (fallback when config.toml is absent) ───────
     _THEME_OPTS = {
         "theme.base":                     "dark",
-        "theme.backgroundColor":          "#000000",
-        "theme.secondaryBackgroundColor": "#000000",
+        "theme.backgroundColor":          "#09090b",
+        "theme.secondaryBackgroundColor": "#09090b",
         "theme.textColor":                "rgba(255,255,255,0.88)",
         "theme.primaryColor":             "#7c3aed",
     }
@@ -278,17 +277,13 @@ def inject_futuristic_theme() -> None:
         except Exception:
             pass
 
-    # CSS injected via components.html JS → appended to window.parent.document.head
-    # (st.markdown strips <style> tags on Streamlit Cloud, rendering CSS as text)
     _CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-/* ── Base canvas — Three.js WebGL handles the dotted surface visuals ─── */
-html {
-    background-color: #000000 !important;
+/* ── Base: Zinc 950 ──────────────────────────────────────────────────── */
+html, body {
+    background-color: #09090b !important;
 }
-
-/* ── All children transparent so html dot surface shows through ───────── */
 body, .stApp, [class*="stApp"],
 [data-testid="stAppViewContainer"],
 [data-testid="stAppViewBlockContainer"],
@@ -309,8 +304,21 @@ section[class*="main"],
     border: none !important;
 }
 
-/* ── Global text color ────────────────────────────────────────────────── */
-/* font-family scoped to text nodes only — preserves Streamlit icon fonts */
+/* ── Ambient glow div (injected via JS) ──────────────────────────────── */
+.ambient-glow {
+    position: fixed !important;
+    top: 40% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 70vw !important;
+    height: 50vh !important;
+    background: radial-gradient(ellipse, rgba(124, 58, 237, 0.15) 0%, transparent 60%) !important;
+    filter: blur(120px) !important;
+    z-index: -1 !important;
+    pointer-events: none !important;
+}
+
+/* ── Global text ─────────────────────────────────────────────────────── */
 body, [data-testid="stAppViewContainer"],
 div[class*="st-"], p, li, label, caption {
     color: rgba(255, 255, 255, 0.85) !important;
@@ -321,36 +329,38 @@ body, p, li, label, caption {
 h1 { font-weight: 800 !important; letter-spacing: -0.04em !important; color: rgba(255,255,255,0.96) !important; }
 h2, h3, h4, h5, h6 { font-weight: 700 !important; letter-spacing: -0.02em !important; color: rgba(255,255,255,0.92) !important; }
 
-/* ── Sidebar: deep black, thin right border ──────────────────────────── */
+/* ── Sidebar: flat Zinc 950, thin separator ──────────────────────────── */
 [data-testid="stSidebar"],
 [data-testid="stSidebar"] > div:first-child {
-    background: #000000 !important;
+    background: #09090b !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
 }
 [data-testid="stSidebar"] {
-    border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
 }
 
-/* ── Buttons: transparent + thin border, white glow on hover ─────────── */
+/* ── All buttons: frosted glass base ─────────────────────────────────── */
 div.stButton > button,
 [data-testid="baseButton-secondary"] {
-    background: transparent !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    background: rgba(24, 24, 27, 0.65) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
     color: rgba(255, 255, 255, 0.85) !important;
-    backdrop-filter: none !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
     border-radius: 10px !important;
     font-weight: 500 !important;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease !important;
+    transition: all 0.2s ease !important;
 }
 div.stButton > button:hover,
 [data-testid="baseButton-secondary"]:hover {
-    background: rgba(255, 255, 255, 0.03) !important;
-    border-color: rgba(255, 255, 255, 0.30) !important;
-    box-shadow: 0 0 14px rgba(255, 255, 255, 0.08) !important;
+    background: rgba(39, 39, 42, 0.8) !important;
+    border-color: rgba(124, 58, 237, 0.4) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
 }
 
-/* ── Primary CTA: purple with glowing shadow ─────────────────────────── */
+/* ── Primary CTA: purple glow ────────────────────────────────────────── */
 [data-testid="baseButton-primary"],
 div.stButton > button[kind="primary"],
 .cta-wrap .stButton > button,
@@ -366,23 +376,20 @@ div.stButton > button[kind="primary"],
 .cta-wrap .stButton > button:hover,
 .cta-wrap [data-testid="baseButton-primary"]:hover {
     background: linear-gradient(135deg, #4f46e5, #8b5cf6) !important;
-    transform: translateY(-1px) !important;
+    transform: translateY(-2px) !important;
     box-shadow: 0 0 32px rgba(124, 58, 237, 0.65) !important;
 }
 
-/* ── Chat input ──────────────────────────────────────────────────────── */
+/* ── Command Center (chat input) ─────────────────────────────────────── */
 [data-testid="stChatInput"] > div {
-    background: rgba(0, 0, 0, 0.70) !important;
-    border: 1px solid rgba(255, 255, 255, 0.10) !important;
-    border-radius: 16px !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-    transition: box-shadow 0.25s ease, border-color 0.25s ease !important;
+    background: #18181b !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 12px !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
 }
 [data-testid="stChatInput"] > div:focus-within {
-    border-color: rgba(99, 102, 241, 0.45) !important;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 0 32px rgba(99,102,241,0.07) !important;
+    border-color: #7c3aed !important;
+    box-shadow: 0 0 0 1px #7c3aed, 0 8px 32px rgba(124, 58, 237, 0.25) !important;
 }
 [data-testid="stChatInput"] textarea {
     background: transparent !important;
@@ -421,23 +428,24 @@ div.stButton > button[kind="primary"],
     transition: border-color 0.15s, background 0.15s !important;
 }
 [data-testid="stSidebar"] [data-testid="stTextInput"] input:focus {
-    border-color: rgba(99, 102, 241, 0.6) !important;
+    border-color: #7c3aed !important;
     background: rgba(255, 255, 255, 0.06) !important;
-    box-shadow: 0 0 0 1px rgba(99,102,241,0.25) !important;
+    box-shadow: 0 0 0 1px rgba(124,58,237,0.35) !important;
 }
 [data-testid="stSidebar"] [data-testid="stTextInput"] input::placeholder {
     color: rgba(255, 255, 255, 0.28) !important;
 }
 
-/* ── Captions: transparent, float over dot grid ──────────────────────── */
+/* ── Captions ────────────────────────────────────────────────────────── */
 [data-testid="stCaptionContainer"],
 [data-testid="stCaption"],
 small {
     background: transparent !important;
-    color: rgba(255, 255, 255, 0.40) !important;
+    color: #a1a1aa !important;
+    font-size: 0.85em !important;
 }
 
-/* ── Custom component classes ────────────────────────────────────────── */
+/* ── Sidebar labels ──────────────────────────────────────────────────── */
 .sidebar-label {
     font-size: 10px !important; font-weight: 700 !important;
     letter-spacing: 0.14em !important; text-transform: uppercase !important;
@@ -446,23 +454,25 @@ small {
 }
 .context-badge {
     display: inline-block !important; padding: 5px 14px !important;
-    border-radius: 20px !important; background: rgba(99,102,241,0.12) !important;
-    border: 1px solid rgba(99,102,241,0.3) !important; color: #a5b4fc !important;
+    border-radius: 20px !important; background: rgba(124,58,237,0.12) !important;
+    border: 1px solid rgba(124,58,237,0.3) !important; color: #a5b4fc !important;
     font-size: 0.82em !important; font-weight: 500 !important;
     letter-spacing: 0.04em !important; margin-top: 2px !important;
 }
 .q-counter {
     display: inline-block !important; padding: 3px 12px !important;
-    border-radius: 12px !important; background: rgba(99,102,241,0.15) !important;
+    border-radius: 12px !important; background: rgba(124,58,237,0.15) !important;
     color: #a5b4fc !important; font-size: 0.55em !important;
     font-weight: 600 !important; vertical-align: middle !important;
     margin-left: 14px !important; letter-spacing: 0.08em !important;
 }
 
-/* ── Welcome card: 40px padding, subtle border ───────────────────────── */
+/* ── Welcome card: frosted glass ─────────────────────────────────────── */
 .welcome-box {
     position: relative !important;
-    background: rgba(255, 255, 255, 0.02) !important;
+    background: rgba(24, 24, 27, 0.65) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04) !important;
     padding: 40px 40px 36px !important;
@@ -486,26 +496,29 @@ small {
     display: inline-flex !important; align-items: center !important;
     justify-content: center !important; width: 22px !important; height: 22px !important;
     border-radius: 50% !important;
-    background: linear-gradient(135deg,#4338ca,#7c3aed) !important;
+    background: linear-gradient(135deg, #4338ca, #7c3aed) !important;
     color: white !important; font-size: 0.75em !important;
     font-weight: 700 !important; flex-shrink: 0 !important;
 }
 
-/* ── Suggestion buttons: transparent + thin border ───────────────────── */
+/* ── Suggestion buttons: frosted glass, purple hover ─────────────────── */
 .suggestion-btn button {
     white-space: normal !important; word-break: break-word !important;
     height: auto !important; text-align: left !important;
-    padding: 14px 16px !important; line-height: 1.4 !important;
+    padding: 16px 18px !important; line-height: 1.5 !important;
     border-radius: 12px !important; font-size: 0.88em !important; font-weight: 500 !important;
-    background: transparent !important;
-    border: 1px solid rgba(255,255,255,0.10) !important;
-    color: rgba(255,255,255,0.85) !important;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease !important;
+    background: rgba(24, 24, 27, 0.65) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+    transition: all 0.2s ease !important;
 }
 .suggestion-btn button:hover {
-    background: rgba(255,255,255,0.02) !important;
-    border-color: rgba(255,255,255,0.30) !important;
-    box-shadow: 0 0 16px rgba(255,255,255,0.06) !important;
+    transform: translateY(-2px) !important;
+    border-color: rgba(124, 58, 237, 0.4) !important;
+    background: rgba(39, 39, 42, 0.8) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
 }
 .suggestion-btn .stButton > button,
 .suggestion-btn [data-testid^="baseButton"] {
@@ -523,8 +536,8 @@ small {
 .topics-label {
     font-size: 10px !important; font-weight: 700 !important;
     letter-spacing: 0.14em !important; text-transform: uppercase !important;
-    opacity: 0.35 !important; margin: 20px 0 10px 0 !important;
-    padding: 0 !important; color: rgba(255,255,255,0.85) !important;
+    color: #71717a !important; margin: 24px 0 12px 0 !important;
+    padding: 0 !important;
 }
 
 /* ── Keyframes ───────────────────────────────────────────────────────── */
@@ -542,8 +555,8 @@ small {
 /* Staggered suggestion entry */
 .suggestion-btn { animation: slide-up-fade 0.45s cubic-bezier(0.16,1,0.3,1) backwards !important; }
 .suggestion-btn-0 { animation-delay: 0.08s !important; }
-.suggestion-btn-1 { animation-delay: 0.14s !important; }
-.suggestion-btn-2 { animation-delay: 0.20s !important; }
+.suggestion-btn-1 { animation-delay: 0.16s !important; }
+.suggestion-btn-2 { animation-delay: 0.24s !important; }
 
 /* Border beam on welcome card */
 .welcome-box::after {
@@ -551,7 +564,7 @@ small {
     border-radius: 18px !important; padding: 1px !important;
     background: conic-gradient(from var(--beam-angle), transparent 0deg, transparent 310deg,
         rgba(124,58,237,0.35) 338deg, rgba(165,180,252,0.85) 350deg,
-        rgba(99,102,241,0.35) 360deg) !important;
+        rgba(124,58,237,0.35) 360deg) !important;
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0) !important;
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0) !important;
     -webkit-mask-composite: destination-out !important;
@@ -568,9 +581,16 @@ small {
 <script>
 (function () {{
   var pd = window.parent.document;
-  var pw = window.parent;
 
-  // ── Stylesheet: always last so !important rules beat emotion CSS ──────
+  // ── Inject ambient glow div (once) ────────────────────────────────────
+  if (!pd.getElementById('ambient-glow')) {{
+    var g = pd.createElement('div');
+    g.id        = 'ambient-glow';
+    g.className = 'ambient-glow';
+    pd.body.prepend(g);
+  }}
+
+  // ── Stylesheet: appended last so it beats emotion CSS injections ──────
   var existing = pd.getElementById('ft-style');
   if (existing) existing.remove();
   var s = pd.createElement('style');
@@ -578,6 +598,7 @@ small {
   s.textContent = {_css_js};
   pd.head.appendChild(s);
 
+  // ── MutationObserver: keep ft-style last whenever emotion adds a tag ──
   if (!pd._ftObserver) {{
     pd._ftObserver = new MutationObserver(function () {{
       var ft = pd.getElementById('ft-style');
@@ -585,70 +606,6 @@ small {
     }});
     pd._ftObserver.observe(pd.head, {{ childList: true }});
   }}
-
-  // ── Three.js dotted surface — load once per page ──────────────────────
-  if (pd.getElementById('dotted-surface-canvas')) return;
-
-  var sc = pd.createElement('script');
-  sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
-  sc.onload = function () {{
-    var T  = pw.THREE;
-    var SEPARATION = 150, AX = 40, AY = 60;
-
-    var scene  = new T.Scene();
-    var camera = new T.PerspectiveCamera(60, pw.innerWidth / pw.innerHeight, 1, 10000);
-    camera.position.set(0, 355, 1220);
-
-    var renderer = new T.WebGLRenderer({{ alpha: true, antialias: true }});
-    renderer.setPixelRatio(pw.devicePixelRatio);
-    renderer.setSize(pw.innerWidth, pw.innerHeight);
-    renderer.setClearColor(0x000000, 0);
-
-    var cvs = renderer.domElement;
-    cvs.id  = 'dotted-surface-canvas';
-    cvs.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;pointer-events:none;';
-    pd.body.prepend(cvs);
-
-    var pos = [], col = [];
-    for (var ix = 0; ix < AX; ix++) {{
-      for (var iy = 0; iy < AY; iy++) {{
-        pos.push(ix * SEPARATION - (AX * SEPARATION) / 2, 0, iy * SEPARATION - (AY * SEPARATION) / 2);
-        col.push(200, 200, 200);
-      }}
-    }}
-
-    var geo = new T.BufferGeometry();
-    geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
-    geo.setAttribute('color',    new T.Float32BufferAttribute(col, 3));
-
-    var mat = new T.PointsMaterial({{
-      size: 8, vertexColors: true, transparent: true, opacity: 0.8, sizeAttenuation: true
-    }});
-    scene.add(new T.Points(geo, mat));
-
-    var count = 0;
-    (function animate() {{
-      requestAnimationFrame(animate);
-      var pa = geo.attributes.position.array;
-      var i  = 0;
-      for (var ix = 0; ix < AX; ix++) {{
-        for (var iy = 0; iy < AY; iy++) {{
-          pa[i * 3 + 1] = Math.sin((ix + count) * 0.3) * 50 + Math.sin((iy + count) * 0.5) * 50;
-          i++;
-        }}
-      }}
-      geo.attributes.position.needsUpdate = true;
-      renderer.render(scene, camera);
-      count += 0.1;
-    }})();
-
-    pw.addEventListener('resize', function () {{
-      camera.aspect = pw.innerWidth / pw.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(pw.innerWidth, pw.innerHeight);
-    }});
-  }};
-  pd.head.appendChild(sc);
 }})();
 </script>
 """,
@@ -1012,7 +969,7 @@ if not st.session_state.messages:
 
     # Suggestion cards: 3 equal columns, all aligned in one row
     if len(active_suggestions) >= 3:
-        cols = st.columns(3)
+        cols = st.columns([1, 1, 1], gap="medium")
         for i in range(3):
             with cols[i]:
                 s = active_suggestions[i]
@@ -1020,16 +977,16 @@ if not st.session_state.messages:
                 if st.button(s["text"], key=f"suggestion_{i}", width="stretch"):
                     st.session_state.pending_suggestion = s["text"]
                 st.markdown('</div>', unsafe_allow_html=True)
-                st.caption(s["sub"])
+                st.markdown(f'<span style="color: #a1a1aa; font-size: 0.85em;">{s["sub"]}</span>', unsafe_allow_html=True)
     else:
-        cols = st.columns(max(len(active_suggestions), 1))
+        cols = st.columns(max(len(active_suggestions), 1), gap="medium")
         for i, s in enumerate(active_suggestions):
             with cols[i]:
                 st.markdown(f'<div class="suggestion-btn suggestion-btn-{i}">', unsafe_allow_html=True)
                 if st.button(s["text"], key=f"suggestion_{i}", width="stretch"):
                     st.session_state.pending_suggestion = s["text"]
                 st.markdown('</div>', unsafe_allow_html=True)
-                st.caption(s["sub"])
+                st.markdown(f'<span style="color: #a1a1aa; font-size: 0.85em;">{s["sub"]}</span>', unsafe_allow_html=True)
 
 # Display chat history
 for msg in st.session_state.messages:
