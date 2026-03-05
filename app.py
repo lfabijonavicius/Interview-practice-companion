@@ -267,7 +267,7 @@ def inject_futuristic_theme() -> None:
     # ── Runtime dark-mode config (fallback when config.toml is absent) ───────
     _THEME_OPTS = {
         "theme.base":                     "dark",
-        "theme.backgroundColor":          "#020617",
+        "theme.backgroundColor":          "#000000",
         "theme.secondaryBackgroundColor": "#000000",
         "theme.textColor":                "rgba(255,255,255,0.88)",
         "theme.primaryColor":             "#7c3aed",
@@ -283,35 +283,39 @@ def inject_futuristic_theme() -> None:
     _CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-/* ── Base ─────────────────────────────────────────────────────────────── */
-html, body {
-    background-color: #020617 !important;
+/* ── Base: pure black canvas ──────────────────────────────────────────── */
+html, body, .stApp, [class*="stApp"] {
+    background-color: #000000 !important;
 }
 
-/* ── Dot-grid background with radial vignette ────────────────────────── */
+/* ── Dotted Surface: 21st.dev-style floor effect ─────────────────────── */
+/* dots are visible at the bottom, fading to black toward the top         */
 #dot-bg-root {
     position: fixed !important;
     inset: 0 !important;
-    z-index: -1 !important;
+    z-index: 0 !important;
     pointer-events: none !important;
-    background-color: #020617 !important;
-    background-image: radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px) !important;
+    background-color: #000000 !important;
+    background-image: radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px) !important;
     background-size: 24px 24px !important;
-    -webkit-mask-image: radial-gradient(ellipse 85% 85% at 50% 50%, black 40%, transparent 100%) !important;
-    mask-image: radial-gradient(ellipse 85% 85% at 50% 50%, black 40%, transparent 100%) !important;
+    -webkit-mask-image: radial-gradient(ellipse 90% 60% at 50% 100%, black 10%, transparent 70%) !important;
+    mask-image: radial-gradient(ellipse 90% 60% at 50% 100%, black 10%, transparent 70%) !important;
 }
 
-/* ── Transparent containers so dot grid shows through ────────────────── */
+/* ── Transparent containers so dot surface shows through ─────────────── */
 [data-testid="stAppViewContainer"],
 [data-testid="stAppViewBlockContainer"],
+[data-testid="stMainBlockContainer"],
 [data-testid="stHeader"],
 [data-testid="stToolbar"],
 [data-testid="stDecoration"],
+[data-testid="stBottom"],
 [data-testid="stAppViewContainer"] > section > div[class*="block-container"],
 div[class*="block-container"],
 div[class*="appview-container"],
 div[class*="main"],
-section[class*="main"] {
+section[class*="main"],
+.main, .block-container {
     background: transparent !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
