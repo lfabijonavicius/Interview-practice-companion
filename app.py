@@ -1456,41 +1456,51 @@ components.html("""
 
   function styleMicAndFloat() {
     var pd           = window.parent.document;
-    var iframes      = pd.querySelectorAll('iframe[title*="streamlit_mic_recorder"]');
-    var chatInputDiv = pd.querySelector('[data-testid="stChatInput"] > div');
+    var chatInputDiv = pd.querySelector('[data-testid="stChatInput"]');
     var textarea     = pd.querySelector('[data-testid="stChatInput"] textarea');
+    var iframes      = pd.querySelectorAll('iframe[title*="streamlit_mic_recorder"]');
 
-    iframes.forEach(function (iframe) {
-      var micContainer = iframe.closest('div[data-testid="stElementContainer"]');
+    if (chatInputDiv && textarea) {
+      // Always keep textarea indented
+      textarea.style.paddingLeft = '50px';
 
-      // ── Fixed positioning — magnetically locks to chat input on scroll/resize ──
-      if (chatInputDiv && micContainer) {
-        var rect = chatInputDiv.getBoundingClientRect();
-        micContainer.style.position = 'fixed';
-        micContainer.style.left     = (rect.left + 14) + 'px';
-        micContainer.style.top      = (rect.top + (rect.height - 44) / 2) + 'px';
-        micContainer.style.width    = '44px';
-        micContainer.style.height   = '44px';
-        micContainer.style.zIndex   = '999999';
-        if (textarea) { textarea.style.paddingLeft = '50px'; }
-      }
+      var chatRect = chatInputDiv.getBoundingClientRect();
 
-      // ── Aggressively re-inject SVG if Streamlit wipes the iframe ─────
-      try {
-        var idoc = iframe.contentDocument || iframe.contentWindow.document;
-        if (!idoc || idoc.getElementById('svg-mic-style')) return;
-        var s = idoc.createElement('style');
-        s.id = 'svg-mic-style';
-        s.innerHTML = INNER_CSS;
-        (idoc.head || idoc.documentElement).appendChild(s);
-        idoc.addEventListener('click', function () {
-          setTimeout(function () {
-            var btn = idoc.querySelector('button');
-            if (btn) { btn.classList.toggle('recording'); }
-          }, 80);
-        });
-      } catch (e) { /* cross-origin guard */ }
-    });
+      iframes.forEach(function (iframe) {
+        var micContainer = iframe.closest('div[data-testid="stElementContainer"]');
+
+        // ── Force fixed position locked to viewport ───────────────────
+        if (micContainer) {
+          micContainer.style.position   = 'fixed';
+          micContainer.style.left       = (chatRect.left + 14) + 'px';
+          micContainer.style.top        = (chatRect.top + (chatRect.height - 44) / 2) + 'px';
+          micContainer.style.width      = '44px';
+          micContainer.style.height     = '44px';
+          micContainer.style.zIndex     = '999999';
+          // Override any Streamlit hide/scroll suppression
+          micContainer.style.display    = 'block';
+          micContainer.style.visibility = 'visible';
+          micContainer.style.opacity    = '1';
+          micContainer.style.transform  = 'none';
+        }
+
+        // ── Re-inject SVG if Streamlit wipes the inner iframe ─────────
+        try {
+          var idoc = iframe.contentDocument || iframe.contentWindow.document;
+          if (!idoc || idoc.getElementById('svg-mic-style')) return;
+          var s = idoc.createElement('style');
+          s.id = 'svg-mic-style';
+          s.innerHTML = INNER_CSS;
+          (idoc.head || idoc.documentElement).appendChild(s);
+          idoc.addEventListener('click', function () {
+            setTimeout(function () {
+              var btn = idoc.querySelector('button');
+              if (btn) { btn.classList.toggle('recording'); }
+            }, 80);
+          });
+        } catch (e) { /* cross-origin guard */ }
+      });
+    }
   }
 
   setInterval(styleMicAndFloat, 50);
