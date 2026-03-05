@@ -1,8 +1,5 @@
 [theme]
 primaryColor = "#667eea"
-backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#f8f9fc"
-textColor = "#262730"
 
 [server]
 headless = true
