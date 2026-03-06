@@ -699,7 +699,7 @@ small {
 .welcome-title { font-size: 1.8rem !important; font-weight: 700 !important; color: #ffffff !important; margin: 0 !important; }
 .title-muted { color: #71717a !important; font-weight: 500 !important; font-size: 1.4rem !important; }
 .welcome-subtitle { color: #a1a1aa !important; font-size: 1rem !important; margin-bottom: 2rem !important; }
-.role-highlight { color: #e9d5ff !important; font-weight: 600 !important; border-bottom: 1px dashed rgba(168,85,247,0.5) !important; }
+.role-highlight { color: #e9d5ff !important; font-weight: 600 !important; }
 .steps-row {
     display: flex !important; justify-content: center !important;
     gap: 16px !important; flex-wrap: wrap !important;
@@ -1306,7 +1306,6 @@ if not st.session_state.messages:
 
     # Build mode title: strip parenthetical tag for cleaner display
     _mode_short = mode.split("(")[0].strip()
-    _mode_tag = f'({mode.split("(")[1]}' if "(" in mode else ""
     st.markdown(f"""
 <div class="welcome-card-premium">
   <div class="welcome-header">
@@ -1314,7 +1313,7 @@ if not st.session_state.messages:
       <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
       <path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/>
     </svg>
-    <h2 class="welcome-title">{_mode_short} <span class="title-muted">{_mode_tag}</span></h2>
+    <h2 class="welcome-title">{_mode_short}</h2>
   </div>
   <p class="welcome-subtitle">Preparing for a <span class="role-highlight">{job_role}</span> role</p>
   <div class="steps-row">
