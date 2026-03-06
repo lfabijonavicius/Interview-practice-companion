@@ -768,25 +768,6 @@ small {
     font-weight: 400 !important; line-height: 1.5 !important;
 }
 
-/* ── Voice input ─────────────────────────────────────────────────────── */
-/* Center only the column that holds the mic iframe */
-div[data-testid="column"]:has(iframe[title*="streamlit_mic_recorder"]) {
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    margin-bottom: 10px !important;
-}
-/* Transparent 44×44 window — inner button styled via JS piercer */
-iframe[title*="streamlit_mic_recorder"] {
-    width: 44px !important;
-    height: 44px !important;
-    border: none !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    outline: none !important;
-    z-index: 9999 !important;
-}
-
 /* ── AI Thinking Soundwave ───────────────────────────────────────────── */
 .ai-thinking-container {
     display: flex !important;
@@ -1475,8 +1456,8 @@ if st.session_state.scores:
 
 # --- Voice Input ---
 audio_data = mic_recorder(
-    start_prompt=" ",
-    stop_prompt=" ",
+    start_prompt="START",
+    stop_prompt="STOP",
     just_once=True,
     key="mic_recorder",
 )
@@ -1652,78 +1633,79 @@ components.html("""
 </script>
 """, height=0)
 
-# --- Mic SVG icon injector + chat input floater (Titanium) ---
+# --- Mic SVG icon injector + chat input floater (Diamond) ---
 components.html("""
 <script>
 (function () {
-  const enforceMicStyle = () => {
+  const SVG_MIC  = 'url("data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'20\\' height=\\'20\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'%23a855f7\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'%3E%3Cpath d=\\'M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z\\'%3E%3C/path%3E%3Cpath d=\\'M19 10v2a7 7 0 0 1-14 0v-2\\'%3E%3C/path%3E%3Cline x1=\\'12\\' x2=\\'12\\' y1=\\'19\\' y2=\\'22\\'%3E%3C/line%3E%3C/svg%3E")';
+  const SVG_STOP = 'url("data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'20\\' height=\\'20\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'%23ef4444\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'%3E%3Crect x=\\'6\\' y=\\'6\\' width=\\'12\\' height=\\'12\\' rx=\\'2\\' ry=\\'2\\'%3E%3C/rect%3E%3C/svg%3E")';
+
+  const diamondMicFix = () => {
     const parentDoc = window.parent.document;
-    const iframes = parentDoc.querySelectorAll('iframe[title*="streamlit_mic_recorder"]');
     const chatInput = parentDoc.querySelector('[data-testid="stChatInput"]');
+    const iframes = parentDoc.querySelectorAll('iframe[title*="streamlit_mic_recorder"]');
 
     iframes.forEach(iframe => {
+      // 1. Force the Streamlit outer container to stay pinned to the chat box
       const container = iframe.closest('div[data-testid="stElementContainer"]');
-
-      // 1. Force outer container positioning and visibility
       if (container && chatInput) {
-        container.style.position = 'fixed';
-        container.style.zIndex = '999999';
-        container.style.display = 'block';
-        container.style.visibility = 'visible';
-        container.style.opacity = '1';
+        container.style.cssText = [
+          'display: block',
+          'visibility: visible',
+          'opacity: 1',
+          'position: fixed',
+          'z-index: 999999',
+          'width: 44px',
+          'height: 44px',
+        ].join(' !important; ') + ' !important;';
 
         const rect = chatInput.getBoundingClientRect();
-        // Magnetically lock to the inside left of the chat box
         container.style.left = (rect.left + 14) + 'px';
-        container.style.top = (rect.top + (rect.height - 44) / 2) + 'px';
-        container.style.width = '44px';
-        container.style.height = '44px';
+        container.style.top  = (rect.top + (rect.height - 44) / 2) + 'px';
 
         const textarea = chatInput.querySelector('textarea');
         if (textarea) textarea.style.paddingLeft = '50px';
       }
 
-      // 2. Aggressive Inner DOM Styling (Wait for button to exist)
+      // 2. Read the button text state and paint the correct SVG directly
       try {
         const innerDoc = iframe.contentDocument || iframe.contentWindow.document;
         if (innerDoc) {
           const btn = innerDoc.querySelector('button');
+          if (btn) {
+            btn.style.width            = '40px';
+            btn.style.height           = '40px';
+            btn.style.borderRadius     = '50%';
+            btn.style.border           = 'none';
+            btn.style.color            = 'transparent';
+            btn.style.outline          = 'none';
+            btn.style.cursor           = 'pointer';
+            btn.style.backgroundSize   = '20px 20px';
+            btn.style.backgroundPosition = 'center';
+            btn.style.backgroundRepeat = 'no-repeat';
+            btn.style.transition       = 'all 0.2s ease';
+            btn.style.boxShadow        = 'none';
+            innerDoc.body.style.margin     = '0';
+            innerDoc.body.style.background = 'transparent';
 
-          // Only inject if the button has actually rendered inside the iframe
-          if (btn && !btn.classList.contains('titanium-styled')) {
-            btn.classList.add('titanium-styled'); // Mark it so we know we got it
-
-            let styleTag = innerDoc.getElementById('titanium-mic-css');
-            if (!styleTag) {
-              styleTag = innerDoc.createElement('style');
-              styleTag.id = 'titanium-mic-css';
-              styleTag.innerHTML = `
-                body { margin: 0 !important; background: transparent !important; }
-                button, .stButton > button {
-                  width: 40px !important; height: 40px !important;
-                  border-radius: 50% !important; background-color: transparent !important;
-                  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23a855f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z'%3E%3C/path%3E%3Cpath d='M19 10v2a7 7 0 0 1-14 0v-2'%3E%3C/path%3E%3Cline x1='12' x2='12' y1='19' y2='22'%3E%3C/line%3E%3C/svg%3E") !important;
-                  background-position: center !important; background-repeat: no-repeat !important;
-                  border: none !important; color: transparent !important;
-                  box-shadow: none !important; cursor: pointer !important; outline: none !important;
-                  transition: all 0.2s ease !important;
-                }
-                button:hover { background-color: rgba(255, 255, 255, 0.05) !important; transform: scale(1.05) !important; }
-                button:active, button:focus {
-                  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23ef4444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='6' y='6' width='12' height='12' rx='2' ry='2'%3E%3C/rect%3E%3C/svg%3E") !important;
-                  background-color: rgba(239, 68, 68, 0.1) !important;
-                }
-              `;
-              innerDoc.head.appendChild(styleTag);
+            const btnText = btn.innerText || '';
+            if (btnText.includes('STOP')) {
+              btn.style.backgroundImage   = SVG_STOP;
+              btn.style.backgroundColor  = 'rgba(239, 68, 68, 0.1)';
+            } else {
+              btn.style.backgroundImage   = SVG_MIC;
+              btn.style.backgroundColor  = 'transparent';
             }
           }
         }
-      } catch(e) {}
+      } catch(e) {
+        // Silently catch cross-origin errors during iframe reload
+      }
     });
   };
 
-  // Run at 50ms interval to aggressively override React teardowns
-  setInterval(enforceMicStyle, 50);
+  // Run aggressively to override any React DOM updates immediately
+  setInterval(diamondMicFix, 50);
 })();
 </script>
 """, height=0)
