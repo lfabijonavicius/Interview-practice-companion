@@ -1455,12 +1455,13 @@ if st.session_state.scores:
         st.sidebar.warning(f"Focus area: **{_weakest_dim}** ({_weakest_avg:.1f}/10)")
 
 # --- Voice Input ---
-audio_data = mic_recorder(
-    start_prompt="START",
-    stop_prompt="STOP",
-    just_once=True,
-    key="permanent_mic",
-)
+with st.sidebar:
+    audio_data = mic_recorder(
+        start_prompt="START",
+        stop_prompt="STOP",
+        just_once=True,
+        key="permanent_mic",
+    )
 
 voice_input = None
 if audio_data and audio_data.get("id") != st.session_state.last_mic_id:
