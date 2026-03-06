@@ -17,22 +17,17 @@ Interview Companion is a full-featured interview preparation app built with Stre
 
 ## Screenshots
 
-> **To add screenshots:** run the app with `streamlit run app.py`, take a screenshot of each view, and save it to the `screenshots/` folder using the filenames below.
+### Welcome Screen
+![Hero — welcome screen with suggestion cards](screenshots/hero.png)
 
-| View | File |
-|------|------|
-| Landing / empty state | `screenshots/hero.png` |
-| Active chat with score card | `screenshots/chat-score.png` |
-| Sidebar — profile + tracker | `screenshots/sidebar-tracker.png` |
-| Mock interviewer mode | `screenshots/mock-interview.png` |
+### Active Chat with Score Card
+![Chat view showing rubric score card below AI response](screenshots/chat-score.png)
 
-```
-screenshots/
-├── hero.png            ← hero section, welcome card, suggestion chips
-├── chat-score.png      ← chat with rubric score card below AI response
-├── sidebar-tracker.png ← Your Profile + Performance Tracker in sidebar
-└── mock-interview.png  ← Mock Interviewer mode with AI avatar
-```
+### Sidebar — Performance Tracker
+![Sidebar showing session stats and performance tracker](screenshots/sidebar-tracker.png)
+
+### Mock Interviewer Mode
+![Mock Interviewer landing with AI avatar and suggestion cards](screenshots/mock-interview.png)
 
 ---
 
