@@ -159,14 +159,18 @@ No `.env` file is needed in production — the app reads from `st.secrets` autom
 
 ```
 interview-practice/
-├── app.py                  # Main Streamlit application
+├── app.py                  # Orchestrator — page flow, sidebar, chat loop
+├── config.py               # Constants, dicts, and configuration data
+├── services.py             # Business logic & API call wrappers
+├── ui.py                   # Presentation layer — theme, dropdowns, score card
+├── session.py              # Session state initialisation and reset logic
 ├── prompts.py              # System prompts for each mode
 ├── requirements.txt        # Python dependencies
 ├── .streamlit/
 │   └── config.toml         # Theme configuration (Zinc 950 dark)
 ├── components/
 │   └── fluid_dropdown/     # Custom React dropdown component
-└── screenshots/            # UI screenshots 
+└── screenshots/            # UI screenshots
 ```
 
 ---
