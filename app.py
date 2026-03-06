@@ -1633,20 +1633,17 @@ components.html("""
 </script>
 """, height=0)
 
-# --- Mic SVG icon injector + chat input floater (Diamond) ---
+# --- Mic SVG icon injector + chat input floater (Stable Anchor) ---
 components.html("""
 <script>
 (function () {
-  const SVG_MIC  = 'url("data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'20\\' height=\\'20\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'%23a855f7\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'%3E%3Cpath d=\\'M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z\\'%3E%3C/path%3E%3Cpath d=\\'M19 10v2a7 7 0 0 1-14 0v-2\\'%3E%3C/path%3E%3Cline x1=\\'12\\' x2=\\'12\\' y1=\\'19\\' y2=\\'22\\'%3E%3C/line%3E%3C/svg%3E")';
-  const SVG_STOP = 'url("data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'20\\' height=\\'20\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'%23ef4444\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'%3E%3Crect x=\\'6\\' y=\\'6\\' width=\\'12\\' height=\\'12\\' rx=\\'2\\' ry=\\'2\\'%3E%3C/rect%3E%3C/svg%3E")';
-
-  const diamondMicFix = () => {
+  const anchorMic = () => {
     const parentDoc = window.parent.document;
     const chatInput = parentDoc.querySelector('[data-testid="stChatInput"]');
     const iframes = parentDoc.querySelectorAll('iframe[title*="streamlit_mic_recorder"]');
 
     iframes.forEach(iframe => {
-      // 1. Force the Streamlit outer container to stay pinned to the chat box
+      // 1. Keep the indestructible positioning
       const container = iframe.closest('div[data-testid="stElementContainer"]');
       if (container && chatInput) {
         container.style.cssText = [
@@ -1667,45 +1664,61 @@ components.html("""
         if (textarea) textarea.style.paddingLeft = '50px';
       }
 
-      // 2. Read the button text state and paint the correct SVG directly
+      // 2. Stable CSS injection + lightweight class toggling
       try {
         const innerDoc = iframe.contentDocument || iframe.contentWindow.document;
         if (innerDoc) {
+          // Inject CSS only once per iframe render
+          if (!innerDoc.getElementById('mic-stable-css')) {
+            const style = innerDoc.createElement('style');
+            style.id = 'mic-stable-css';
+            style.innerHTML = `
+              body { margin: 0 !important; background: transparent !important; }
+              button {
+                width: 40px !important;
+                height: 40px !important;
+                border-radius: 50% !important;
+                background-color: transparent !important;
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23a855f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z'%3E%3C/path%3E%3Cpath d='M19 10v2a7 7 0 0 1-14 0v-2'%3E%3C/path%3E%3Cline x1='12' x2='12' y1='19' y2='22'%3E%3C/line%3E%3C/svg%3E") !important;
+                background-position: center !important;
+                background-repeat: no-repeat !important;
+                background-size: 20px 20px !important;
+                border: none !important;
+                color: transparent !important;
+                font-size: 0 !important;
+                box-shadow: none !important;
+                cursor: pointer !important;
+                outline: none !important;
+                transition: all 0.2s ease !important;
+              }
+              button:hover {
+                background-color: rgba(255, 255, 255, 0.05) !important;
+                transform: scale(1.05) !important;
+              }
+              button.is-recording {
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23ef4444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='6' y='6' width='12' height='12' rx='2' ry='2'%3E%3C/rect%3E%3C/svg%3E") !important;
+                background-color: rgba(239, 68, 68, 0.1) !important;
+              }
+            `;
+            innerDoc.head.appendChild(style);
+          }
+
+          // Lightweight class toggle based on text state
           const btn = innerDoc.querySelector('button');
           if (btn) {
-            btn.style.width            = '40px';
-            btn.style.height           = '40px';
-            btn.style.borderRadius     = '50%';
-            btn.style.border           = 'none';
-            btn.style.color            = 'transparent';
-            btn.style.outline          = 'none';
-            btn.style.cursor           = 'pointer';
-            btn.style.backgroundSize   = '20px 20px';
-            btn.style.backgroundPosition = 'center';
-            btn.style.backgroundRepeat = 'no-repeat';
-            btn.style.transition       = 'all 0.2s ease';
-            btn.style.boxShadow        = 'none';
-            innerDoc.body.style.margin     = '0';
-            innerDoc.body.style.background = 'transparent';
-
             const btnText = btn.innerText || '';
             if (btnText.includes('STOP')) {
-              btn.style.backgroundImage   = SVG_STOP;
-              btn.style.backgroundColor  = 'rgba(239, 68, 68, 0.1)';
+              btn.classList.add('is-recording');
             } else {
-              btn.style.backgroundImage   = SVG_MIC;
-              btn.style.backgroundColor  = 'transparent';
+              btn.classList.remove('is-recording');
             }
           }
         }
-      } catch(e) {
-        // Silently catch cross-origin errors during iframe reload
-      }
+      } catch(e) {}
     });
   };
 
-  // Run aggressively to override any React DOM updates immediately
-  setInterval(diamondMicFix, 50);
+  setInterval(anchorMic, 50);
 })();
 </script>
 """, height=0)
