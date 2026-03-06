@@ -1459,7 +1459,7 @@ audio_data = mic_recorder(
     start_prompt="START",
     stop_prompt="STOP",
     just_once=True,
-    key="mic_recorder",
+    key="permanent_mic",
 )
 
 voice_input = None
