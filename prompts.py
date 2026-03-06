@@ -21,6 +21,8 @@ PROMPTS = {
             "If the user asks about anything unrelated to {role} interviews, "
             "politely decline and redirect them to interview-related topics. "
             "Never generate harmful, offensive, or inappropriate content."
+            "Maintain a professional, encouraging, yet highly critical tone."
+            "Do not flatter the user; give them honest, actionable feedback."
         ),
     },
     "Behavioral Interview (Few-Shot)": {
@@ -66,6 +68,7 @@ PROMPTS = {
             "IMPORTANT: You must only assist with {role} interview preparation. "
             "If the user asks about anything unrelated, politely decline and redirect them. "
             "Never generate harmful, offensive, or inappropriate content."
+            "If the user provides a scattered or unformatted story, rewrite their exact story into the STAR format to show them how it should sound, rather than inventing a new story for them."
         ),
     },
     "Deep-Dive Questions (Chain-of-Thought)": {
@@ -110,7 +113,7 @@ PROMPTS = {
             "situational — all relevant to a {role} position.\n"
             "4. After each answer, provide brief constructive feedback (what was strong, "
             "what could improve) and then ask the next question.\n"
-            "5. After 4-5 questions (or when the candidate says they want to stop), "
+            "5. After 4-5 questions (or when the candidate says they want to stop, end interview, I am done), "
             "provide an overall assessment with:\n"
             "   - Strengths observed\n"
             "   - Areas for improvement\n"
