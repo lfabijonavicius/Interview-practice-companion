@@ -14,9 +14,10 @@ from config import (
     PERSONA_MODIFIERS,
 )
 from services import (
-    _is_injection, _transcribe_audio, _should_score, _score_answer,
-    _fetch_suggestions, _temp_label, _top_p_label, _tokens_label,
-    _freq_label, _presence_label,
+    _is_injection, _is_flagged_by_moderation, _transcribe_audio,
+    _should_score, _score_answer, _fetch_suggestions,
+    _temp_label, _top_p_label, _tokens_label, _freq_label, _presence_label,
+    _trim_history,
 )
 from ui import fluid_dropdown, inject_futuristic_theme, _render_score_card
 from session import initialize_session, reset_chat
@@ -257,7 +258,7 @@ if not api_key or api_key == "your-key-here":
     )
     st.stop()
 
-client = OpenAI(api_key=api_key)
+client = OpenAI(api_key=api_key, max_retries=3)
 
 # --- Chat History & Session State ---
 initialize_session(mode, model, job_role, persona)
@@ -480,10 +481,18 @@ if user_input:
         )
         st.stop()
 
-    # Security: prompt injection detection
+    # Security: prompt injection detection (pattern matching)
     if _is_injection(user_input):
         st.error(
             "⚠️ Your message contains disallowed content. "
+            "Please keep your questions interview-related."
+        )
+        st.stop()
+
+    # Security: OpenAI moderation endpoint (catches harmful content patterns miss)
+    if _is_flagged_by_moderation(client, user_input):
+        st.error(
+            "⚠️ Your message was flagged by our content filter. "
             "Please keep your questions interview-related."
         )
         st.stop()
@@ -512,7 +521,7 @@ if user_input:
             f"examples, and feedback to their level:\n\n{resume_text[:1000]}"
         )
     api_messages = [{"role": "system", "content": system_prompt}]
-    for msg in st.session_state.messages:
+    for msg in _trim_history(st.session_state.messages):
         api_messages.append({"role": msg["role"], "content": msg["content"]})
 
     # Call OpenAI API
@@ -528,7 +537,7 @@ if user_input:
             unsafe_allow_html=True,
         )
         try:
-            response = client.chat.completions.create(
+            stream = client.chat.completions.create(
                 model=model,
                 messages=api_messages,
                 temperature=temperature,
@@ -536,17 +545,27 @@ if user_input:
                 max_tokens=max_tokens,
                 frequency_penalty=frequency_penalty,
                 presence_penalty=presence_penalty,
+                stream=True,
+                stream_options={"include_usage": True},
             )
             thinking_placeholder.empty()
-            assistant_message = response.choices[0].message.content
-            st.markdown(assistant_message)
+
+            chunks = []
+            def _token_gen():
+                for chunk in stream:
+                    if chunk.choices and chunk.choices[0].delta.content:
+                        token = chunk.choices[0].delta.content
+                        chunks.append(token)
+                        yield token
+                    if chunk.usage:
+                        st.session_state.total_input_tokens += chunk.usage.prompt_tokens
+                        st.session_state.total_output_tokens += chunk.usage.completion_tokens
+
+            st.write_stream(_token_gen())
+            assistant_message = "".join(chunks)
             st.session_state.messages.append(
                 {"role": "assistant", "content": assistant_message}
             )
-            # Track token usage for cost display
-            if response.usage:
-                st.session_state.total_input_tokens += response.usage.prompt_tokens
-                st.session_state.total_output_tokens += response.usage.completion_tokens
 
             # Score the user's answer if it's substantive enough
             if _should_score(mode, user_input):

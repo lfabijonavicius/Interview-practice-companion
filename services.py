@@ -2,14 +2,42 @@ import streamlit as st
 from openai import OpenAI
 import io
 import json
+from pydantic import BaseModel
 
 from config import _INJECTION_PATTERNS, _MODE_SUGGESTION_CONTEXT, SUGGESTIONS
+
+# Rough token budget: keep history within ~12k tokens (leaves headroom for system prompt + response)
+_MAX_HISTORY_CHARS = 48_000  # ~12k tokens at ~4 chars/token
+
+
+def _trim_history(messages: list[dict]) -> list[dict]:
+    """Return a sliding window of messages that fits within the character budget.
+
+    Always keeps the most recent messages. The first message (usually the
+    opening assistant greeting) is dropped first when trimming is needed.
+    """
+    total = sum(len(m["content"]) for m in messages)
+    if total <= _MAX_HISTORY_CHARS:
+        return messages
+    trimmed = list(messages)
+    while len(trimmed) > 1 and sum(len(m["content"]) for m in trimmed) > _MAX_HISTORY_CHARS:
+        trimmed.pop(0)
+    return trimmed
 
 
 def _is_injection(text: str) -> bool:
     """Return True if text contains a known prompt injection pattern."""
     lower = text.lower()
     return any(p in lower for p in _INJECTION_PATTERNS)
+
+
+def _is_flagged_by_moderation(openai_client, text: str) -> bool:
+    """Return True if OpenAI's moderation endpoint flags the text as harmful."""
+    try:
+        result = openai_client.moderations.create(input=text)
+        return result.results[0].flagged
+    except Exception:
+        return False
 
 
 def _transcribe_audio(openai_client, audio_bytes: bytes) -> str:
@@ -31,6 +59,13 @@ def _should_score(mode: str, text: str) -> bool:
     if "Question Generator" in mode:
         return False
     return len(text.split()) >= 15
+
+
+class _ScoreSchema(BaseModel):
+    dimensions: dict[str, int]
+    overall: float
+    strength: str
+    improve: str
 
 
 def _score_answer(
@@ -59,25 +94,24 @@ def _score_answer(
         f"Question/context: {question[:400]}\n"
         f"Candidate's answer: {answer[:800]}\n"
         f"{ctx}\n\n"
-        f"Score on: {', '.join(d)} — each 1-10 (integer).\n"
-        f"Return ONLY valid JSON:\n"
-        f'{{"dimensions":{{"{d[0]}":N,"{d[1]}":N,"{d[2]}":N,"{d[3]}":N}},'
-        f'"overall":N.N,"strength":"<10 words>","improve":"<10 words>"}}'
+        f"Score each dimension 1-10 (integer): {', '.join(d)}.\n"
+        f"overall is a float 1.0-10.0. strength and improve are each under 10 words."
     )
     try:
-        resp = openai_client.chat.completions.create(
+        resp = openai_client.beta.chat.completions.parse(
             model="gpt-4.1-nano",
             messages=[{"role": "user", "content": prompt}],
+            response_format=_ScoreSchema,
             temperature=0.1,
             max_tokens=220,
         )
-        raw = resp.choices[0].message.content.strip()
-        if raw.startswith("```"):
-            lines = raw.split("\n")
-            raw = "\n".join(lines[1:])
-            if raw.endswith("```"):
-                raw = raw[: raw.rfind("```")]
-        return json.loads(raw)
+        parsed = resp.choices[0].message.parsed
+        return {
+            "dimensions": parsed.dimensions,
+            "overall": parsed.overall,
+            "strength": parsed.strength,
+            "improve": parsed.improve,
+        }
     except Exception:
         return None
 
